@@ -1,0 +1,11 @@
+/src/x64
+/src/_release/
+/src/_debug/
+/src/.vs/rapid-cluster/v17
+/src/.vs/rapid-cluster/FileContentIndex
+/src/.vs/clusty/v17
+/src/.vs/clusty/FileContentIndex
+/libs/winflexbison
+/src/clusty/x64/Debug/clusty.tlog
+/src/clusty/x64/Debug
+/src

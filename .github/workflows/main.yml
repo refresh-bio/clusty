@@ -1,0 +1,73 @@
+name: GitHub Actions CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+ 
+jobs:
+
+########################################################################################
+  make:
+    name: Make
+    strategy:
+      fail-fast: false
+      matrix:
+        machine: [ubuntu-latest, macOS-12]
+        compiler: [g++-11]
+    runs-on: ['${{ matrix.machine }}']   
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    
+    - name: get tags
+      run: | 
+        cd ./libs/igraph
+        git fetch --tags origin
+    
+    - name: make
+      run: | 
+        make -j32 CXX=${{matrix.compiler}} 
+        cp ./clusty ./clusty-${{matrix.compiler}}
+        make clean
+    - name: tar artifacts
+      run: tar -cvf clusty.tar ./clusty-${{matrix.compiler}} ./test/cmp.py ./test/vir61.*
+    
+    - uses: actions/upload-artifact@v2
+      with:
+        name: executable-artifact-${{ matrix.machine }}
+        path: ./clusty.tar    
+
+########################################################################################
+  vir61-linkage:
+    name: Vir61
+    needs: make
+    strategy:
+      fail-fast: false
+      matrix:
+        machine: [ubuntu-latest, macOS-12]
+        compiler: [g++-11]
+        algo: [single, complete]
+        threshold: [95, 70]
+     
+    runs-on: ['${{ matrix.machine }}']    
+    
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: executable-artifact-${{ matrix.machine }}
+        path: ./
+
+    - name: untar artifacts
+      run: |
+        tar -xf clusty.tar
+    
+    - name: ${{matrix.algo}}, ${{matrix.threshold}} (with representatives, reordered columns)
+      run: |
+        ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/vir61.list --similarity --min ani 0.${{matrix.threshold}} --id-cols id2 id1 --distance-col ani ./test/vir61.ani vir61.${{matrix.algo}}.${{matrix.threshold}} --out-representatives
+        python ./test/cmp.py vir61.${{matrix.algo}}.${{matrix.threshold}} ./test/vir61.${{matrix.algo}}.${{matrix.threshold}}.python.csv
+  

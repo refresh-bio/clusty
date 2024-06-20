@@ -1,0 +1,67 @@
+all: rapid-cluster
+
+
+####################
+
+ifdef MSVC     # Avoid the MingW/Cygwin sections
+    uname_S := Windows
+else                          # If uname not available => 'not'
+    uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
+endif
+
+ifeq ($(uname_S),Linux)   
+	# check if CPU supports AVX2
+	HAVE_AVX2=$(filter-out 0,$(shell grep avx2 /proc/cpuinfo | wc -l))
+	OMP_FLAGS = -fopenmp
+	ABI_FLAGS = -fabi-version=6
+endif
+ifeq ($(uname_S),Darwin)
+	 # check if CPU supports SSE4.2
+	HAVE_AVX2=$(filter-out 0,$(shell  sysctl -n machdep.cpu.features machdep.cpu.leaf7_features| grep AVX2 - | wc -l))
+	OMP_FLAGS = -Xpreprocessor -fopenmp 
+	ABI_FLAGS = 
+endif
+
+## ###################
+ROOT_DIR = .
+MAIN_DIR = src
+LIBS_DIR = src/kmc_api
+MIMALLOC_INLUCDE_DIR = libs/mimalloc/include
+
+ifeq ($(STATIC_LINK), true) 
+    LDFLAGS += 
+    CFLAGS	+= -Wall -O3 -m64 -std=c++17 $(OMP_FLAGS) -static -Wl,--whole-archive -lpthread -Wl,--no-whole-archive
+    CFLAGS_AVX2	+= $(CFLAGS) -mavx2 -I $(LIBS_DIR)
+    CFLAGS += -mavx  -I $(LIBS_DIR) -I $(MIMALLOC_INLUCDE_DIR)
+    CLINK	= -lm -static -O3 -std=c++17 -mavx $(OMP_FLAGS) $(ABI_FLAGS) -Wl,--whole-archive -lpthread -Wl,--no-whole-archive
+else
+    LDFLAGS += 
+    CFLAGS	+= -Wall -O3 -m64 -std=c++17 $(OMP_FLAGS) -pthread 
+    CFLAGS_AVX2	+= $(CFLAGS) -mavx2 -I $(LIBS_DIR)
+    CFLAGS += -mavx  -I $(LIBS_DIR) -I $(MIMALLOC_INLUCDE_DIR)
+    CLINK	= -lm -O3 -std=c++17 -pthread $(OMP_FLAGS) -mavx $(ABI_FLAGS) 
+endif
+
+MIMALLOC_OBJ=libs/mimalloc/mimalloc.o
+
+$(MIMALLOC_OBJ):
+	$(CC) -DMI_MALLOC_OVERRIDE -O3 -DNDEBUG -fPIC -Wall -Wextra -Wno-unknown-pragmas -fvisibility=hidden -Wstrict-prototypes -ftls-model=initial-exec -fno-builtin-malloc -std=gnu11 -c -I libs/mimalloc/include libs/mimalloc/src/static.c -o $(MIMALLOC_OBJ)
+
+OBJS := \
+	$(MAIN_DIR)/console.o \
+	$(MAIN_DIR)/conversion.o \
+	$(MAIN_DIR)/distances.o \
+	$(MAIN_DIR)/main.o \
+
+%.o: %.cpp
+	$(CXX) $(CFLAGS) -c $< -o $@
+
+rapid-cluster: $(OBJS) 
+	$(CXX) $(CLINK) $(LDFLAGS) -o $(ROOT_DIR)/$@ $(OBJS)
+
+clean:
+	-rm $(MAIN_DIR)/*.o
+	-rm $(LIBS_DIR)/*.o
+	-rm $(MIMALLOC_OBJ)
+	-rm rapid-cluster
+	
