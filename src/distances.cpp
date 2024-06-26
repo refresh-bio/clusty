@@ -1,3 +1,11 @@
+// *******************************************************************************************
+// This file is a part of Clusty software distributed under GNU GPL 3 license.
+// The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
+//
+// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+//
+// *******************************************************************************************
+
 #include "distances.h"
 #include "log.h"
 

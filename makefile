@@ -7,6 +7,7 @@ ifdef MSVC     # Avoid the MingW/Cygwin sections
     uname_S := Windows
 else                          # If uname not available => 'not'
     uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
+	uname_M := $(shell sh -c 'uname -m 2>/dev/null || echo not')
 endif
 
 ifeq ($(uname_S),Linux)   
@@ -67,8 +68,13 @@ endif
 
 
 ifeq ($(STATIC_LINK), true) 
+ifeq ($(uname_S),Darwin)
+    CFLAGS  = -Wall -O3 $(ARCH_FLAGS) -std=c++17 $(DEFINE_FLAGS) $(INCLUDES)
+    CLINK	= -lm -O3 -std=c++17 $(ABI_FLAGS) -static-libgcc
+else
     CFLAGS  = -Wall -O3 $(ARCH_FLAGS) -std=c++17 $(DEFINE_FLAGS) $(INCLUDES) -static -Wl,--whole-archive -lpthread -Wl,--no-whole-archive
     CLINK	= -lm -static -O3 -std=c++17 $(ABI_FLAGS) -Wl,--whole-archive -lpthread -Wl,--no-whole-archive
+endif
 else
     CFLAGS	= -Wall -O3 $(ARCH_FLAGS) -std=c++17 $(DEFINE_FLAGS) $(INCLUDES) -pthread 
     CLINK	= -lm -O3 -std=c++17 -pthread $(ABI_FLAGS) 

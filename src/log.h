@@ -1,11 +1,13 @@
 #pragma once
-/*
-This file is a part of Kmer-db software distributed under GNU GPL 3 licence.
-The homepage of the Kmer-db project is http://sun.aei.polsl.pl/REFRESH/kmer-db
 
-Authors: Sebastian Deorowicz, Adam Gudys, Maciej Dlugosz, Marek Kokot, Agnieszka Danek
+// *******************************************************************************************
+// This file is a part of Clusty software distributed under GNU GPL 3 license.
+// The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
+//
+// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+//
+// *******************************************************************************************
 
-*/
 #include "conversion.h"
 
 #include <iostream>

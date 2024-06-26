@@ -1,6 +1,12 @@
-// Single linkage and complete linkage
-// implementation with heaptrix (heap-matrix)
-// 2024-02-04
+#pragma once 
+
+// *******************************************************************************************
+// This file is a part of Clusty software distributed under GNU GPL 3 license.
+// The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
+//
+// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+//
+// *******************************************************************************************
 
 #include <iostream>
 #include <vector>
@@ -1098,5 +1104,3 @@ class CompleteLinkage : public linkage_algorithm_heaptrix::complete_linkage<Dist
          return this->run (distances.get_distances_of_objects(), objects, threshold, assignments);
       }
 };
-
-// Finis coronat opus.

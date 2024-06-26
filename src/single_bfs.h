@@ -1,7 +1,12 @@
+#pragma once 
 
-#ifndef MMSEQS1_H
-#define MMSEQS1_H
-
+// *******************************************************************************************
+// This file is a part of Clusty software distributed under GNU GPL 3 license.
+// The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
+//
+// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+//
+// *******************************************************************************************
 
 #include <vector>
 #include <algorithm>
@@ -86,5 +91,3 @@ public:
 	}
 	
 };
-
-#endif 

@@ -1,5 +1,12 @@
-#ifndef _MEMORY_MONOTONIC_H
-#define _MEMORY_MONOTONIC_H
+#pragma once
+
+// *******************************************************************************************
+// This file is a part of Clusty software distributed under GNU GPL 3 license.
+// The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
+//
+// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+//
+// *******************************************************************************************
 
 #include <vector>
 #include <memory>
@@ -239,5 +246,3 @@ namespace refresh {
 		}
 	};
 }
-
-#endif
