@@ -1,5 +1,6 @@
 # Clusty
 
+[![Bioconda downloads](https://img.shields.io/conda/dn/bioconda/clusty.svg?style=flag&label=Bioconda%20downloads)](https://anaconda.org/bioconda/clusty)
 [![GitHub downloads](https://img.shields.io/github/downloads/refresh-bio/clusty/total.svg?style=flag&label=GitHub%20downloads)](https://github.com/refresh-bio/clusty/releases)
 [![GitHub Actions CI](../../workflows/GitHub%20Actions%20CI/badge.svg)](../../actions/workflows/main.yml)
 [![License](https://anaconda.org/bioconda/famsa/badges/license.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
@@ -43,7 +44,13 @@ cd ./test
 ## Installation
 
 Clusty comes with a set of precompiled binaries for Windows and Linux. They can be found under [Releases](./releases) tab.
-The package can be also built from the sources distributed as:
+The software is also available on [Bioconda](https://anaconda.org/bioconda/clusty):
+```
+conda install -c bioconda clusty
+```
+For detailed instructions how to set up Bioconda, please refer to the [Bioconda manual](https://bioconda.github.io/user/install.html#install-conda). 
+
+The package can be built from the sources distributed as:
 * Visual Studio 2022 solution for Windows,
 * MAKE project for Linux (g++-10 required).
 
@@ -161,5 +168,8 @@ In the following section one can find detailed information on clustering algorit
 | Greedy set cover | Greedy clustering with objects investigated in descending order w.r.t. the number of neighbors. Every unassigned object becomes a new centroid with all connected objects being assigned to it. Equivalent to MMseqs mode 0 clustering.  |  *O*(*n* log*n* + *e*) |
 | CD-HIT | Greedy clustering with objects investigated in descending order w.r.t. the representativeness. Every unassigned object becomes a new centroid with all connected objects being assigned to it. Equivalent to MMseqs mode 2 clustering. | *O*(*e*) |
 | Leiden | Iterative heuristic for finding communities in networks. It consists of three phases: (1) local moving of nodes, (2) refinement of the partition, and (3) aggregation of the network using the refined and the non-refined partitions. | unknown (algorithm provided by an external library) |
+
+## Citation
+Zielezinski A, Gudyś A, Barylski J, Siminski K, Rozwalak P, Dutilh BE, Deorowicz S. Ultrafast and accurate sequence alignment and clustering of viral genomes. bioRxiv [doi:10.1101/2024.06.27.601020].
 
 ###
