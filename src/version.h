@@ -8,5 +8,17 @@
 //
 // *******************************************************************************************
 
-#define VERSION		"1.0.0"
-#define DATE		"2024-06-26"
+#define VERSION		"1.0.1"
+#define DATE		"2024-08-19"
+
+
+/********* Version history *********
+
+ 1.0.1 (2024-08-19)
+ Fixed bug in parsing floating point numbers with more than 15 decimal places.
+
+
+ 1.0.0 (2024-06-26)
+ First public release
+
+ */

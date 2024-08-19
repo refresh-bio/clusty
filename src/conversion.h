@@ -17,13 +17,19 @@
 #include <limits>
 #include <cmath>
 
+#include <iostream>
+#include <iomanip>
+
 // ************************************************************************************
 class Conversions
 {
 public:
+	static const int POWERS_SIZE = 15;
+	static uint64_t powers10[POWERS_SIZE];
+	static double neg_powers10[POWERS_SIZE];
+	
 	static char digits[100000 * 5];
-	static uint64_t powers10[15];
-	static double neg_powers10[15];
+
 	struct _si {
 		_si()
 		{
@@ -44,7 +50,7 @@ public:
 
 			powers10[0] = 1;
 			neg_powers10[0] = 1.0;
-			for (int i = 1; i < 15; ++i) {
+			for (int i = 1; i < POWERS_SIZE; ++i) {
 				powers10[i] = 10 * powers10[i - 1];
 				neg_powers10[i] = 0.1 * neg_powers10[i - 1];
 			}
@@ -171,14 +177,17 @@ public:
 		}
 		if (*p == '.') {
 			double f = 0.0;
-			int n = 0;
+			//int n = 0;
 			++p;
+			double mul = 1.0;
 			while (*p >= '0' && *p <= '9') {
 				f = (f * 10.0) + (*p - '0');
 				++p;
-				++n;
+				//++n;
+				mul *= 0.1;
+
 			}
-			r += f * neg_powers10[n];
+			r += f * mul;
 		}
 
 		// optional exponential part
@@ -197,7 +206,12 @@ public:
 				exp = exp * 10 + (*p++ - '0');
 			}
 			
-			r *=  exp_neg ? neg_powers10[exp] : powers10[exp];
+			if (exp < POWERS_SIZE) {
+				r *= exp_neg ? neg_powers10[exp] : powers10[exp];
+			}
+			else {
+				r *= exp_neg ? pow(10, -exp) : pow(10, exp);
+			}
 		}
 
 		if (neg) {
@@ -209,6 +223,29 @@ public:
 		}
 
 		return r;
+	}
+
+	static void test_strtod() {
+		
+		const char* strings [] = {
+			"123",
+			"0.123",
+			"123.456",
+			"12345678987654321",
+			"0.12345678987654321",
+			"123456789.12345678987654321",
+			"12345678987654321.12345678987654321",
+			"1.23e2",
+			"1.23e-2",
+			"123e20",
+			"123e-20"
+		};
+		
+		for (const auto& s : strings) {
+			char* end;
+			double v = strtod(s, &end);
+			std::cout << std::setprecision(15) << v << std::endl;
+		}
 	}
 };
 
