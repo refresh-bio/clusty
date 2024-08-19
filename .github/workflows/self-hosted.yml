@@ -19,13 +19,15 @@ jobs:
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']
     
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
     - name: Get tags
       run: | 
         cd ./libs/igraph
-        git fetch --tags origin
+        #git fetch --prune --unshallow --tags
+        echo exit code $?
+        git tag --list
     
 
   ########################################################################################
@@ -55,9 +57,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        machine: [xeon]
         compiler: [g++-11]
       
-    runs-on: [self-hosted, clusty]
+    runs-on: [self-hosted, clusty, '${{ matrix.machine }}']
 
     steps:
     - name: make
@@ -178,6 +181,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        machine: [xeon]
         compiler: [g++-11]
         algo: [leiden]
         threshold: [70]
@@ -197,6 +201,6 @@ jobs:
         
     - name: ${{matrix.algo}}, ${{matrix.threshold}} (with representatives, numeric ids)
       run: |
-        ./clusty-keiden-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv.num ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num --out-representatives --numeric-ids
+        ./clusty-leiden-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv.num ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num --out-representatives --numeric-ids
         cmp ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num ./test/ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.csv
   

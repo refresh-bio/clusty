@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         machine: [ubuntu-latest, macOS-12]
-        compiler: [g++-11]
+        compiler: [g++]
     runs-on: ['${{ matrix.machine }}']   
 
     steps:
@@ -50,7 +50,7 @@ jobs:
       fail-fast: false
       matrix:
         machine: [ubuntu-latest, macOS-12]
-        compiler: [g++-11]
+        compiler: [g++]
         algo: [single, complete]
         threshold: [95, 70]
      
