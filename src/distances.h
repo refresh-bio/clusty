@@ -109,12 +109,18 @@ public:
 class SparseMatrix
 {
 protected:
-	/** a vector of distances */
-	std::vector<dist_t> distances;
 
-	/** Each row holds a pointer to the first distance in 
-	 *  the row. */
-	std::vector<dist_t*> rows; /// wskaźniki na kolejne wiersze, ostatni pokazuje adres za kolekcją
+	size_t n_elements{ 0 };
+
+	std::vector<std::vector<dist_t>> distances;
+
+	/** a vector of distances */
+	//std::vector<dist_t> distances;
+
+	/** Each row holds a pointer to the first distance in the row. 
+		The last points address right after the collection.
+	*/
+	//std::vector<dist_t*> rows; 
 
 
 public:
@@ -123,48 +129,31 @@ public:
 	
 	virtual ~SparseMatrix() {}
 
-	size_t num_objects() const { return rows.size() - 1; }
+	size_t num_objects() const { return distances.size(); }
 
-	size_t num_elements() const { return distances.size(); }
-	void reserve(size_t count) {
-		distances.reserve(count);
-	}
+	size_t num_elements() const { return n_elements; }
 
 	virtual size_t num_input_objects() const = 0;
 
-	const dist_t* begin(int row_id) const { return rows[row_id]; }
-	const dist_t* end(int row_id) const { return rows[row_id + 1]; }
+	const dist_t* begin(int row_id) const { return distances[row_id].data(); }
+	const dist_t* end(int row_id) const { return distances[row_id].data() + distances[row_id].size(); }
 
-   std::vector<std::tuple<std::size_t, std::size_t, double>> get_distances_of_objects() const 
-   {
-      std::vector<std::tuple<std::size_t, std::size_t, double>> objects;
-      objects.reserve (distances.size());
-      for (const auto & item : distances)
-      {
-         objects.emplace_back(item.u.s.lo, item.u.s.hi, item.d);
-      }
+	void clear(int row_id) { std::vector<dist_t>().swap(distances[row_id]); }
 
-      return objects;
-   }
-	const std::vector<dist_t> get_distances() const { return distances; }
-
-	std::vector<dist_t> get_distances() { return distances; }
-
-	size_t get_num_neighbours(int i) { return rows[i + 1] - rows[i]; }
-
+	size_t get_num_neighbours(int i) { return distances[i].size(); }
 
 	dist_t get(uint64_t i, uint64_t j) const 
 	{
 		dist_t v {i, j, dist_t::MAX };
-		auto it = std::lower_bound(rows[i], rows[i + 1], v, [](const dist_t& a, const dist_t& b) { return a.u.s.hi < b.u.s.hi; });
+		auto it = std::lower_bound(begin(i), end(i), v, [](const dist_t& a, const dist_t& b) { return a.u.s.hi < b.u.s.hi; });
 
-		return (it == rows[i + 1] || it->u.s.hi != j ) ? v : *it;
+		return (it == end(i) || it->u.s.hi != j) ? v : *it;
 	}
 
 	void extract_row(uint32_t row, uint32_t count, dist_t* out) const 
 	{
-		dist_t* cur = rows[row];
-		dist_t* end = rows[row + 1];
+		const dist_t* cur = this->begin(row);
+		const dist_t* end = this->end(row);
 		
 		for (uint32_t i = 0; i < count; ++i) 
 		{

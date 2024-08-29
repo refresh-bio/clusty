@@ -52,9 +52,11 @@ class Console {
 	const std::string PARAM_LEIDEN_BETA{"--leiden-beta"};
 	const std::string PARAM_LEIDEN_ITERATIONS{"--leiden-iterations"};
 
-		
-	Algo str2algo(const std::string& str) 
-   {
+	const std::string FLAG_VERBOSE{ "-v" };
+
+public:		
+	static Algo str2algo(const std::string& str) 
+	{
 		if (str == "single")				{ return Algo::SingleLinkage;   }
 		else if (str == "complete")			{ return Algo::CompleteLinkage; }
 		else if (str == "uclust")           { return Algo::UClust;          }
@@ -63,6 +65,18 @@ class Console {
 		else if (str == "leiden")			{ return Algo::Leiden; }
 		
 		else { throw std::runtime_error("Unkown clustering algorithm"); }
+	}
+
+	static std::string algo2str(Algo algo) {
+		switch (algo) {
+		case Algo::SingleLinkage: return "single";
+		case Algo::CompleteLinkage: return "complete";
+		case Algo::UClust: return "uclust";
+		case Algo::SetCover: return "set-cover";
+		case Algo::Leiden: return "leiden";
+		case Algo::CdHit: return "cd-hit";
+		default: throw std::runtime_error("Unkown clustering algorithm");
+		}
 	}
 
 
@@ -85,7 +99,9 @@ public:
 	bool outputCSV{ false };
 
 	LeidenParams leidenParams;
-	
+
+	bool verbose{ false };
+
 	void printUsage() const;
 	bool parse(int argc, char** argv);
 

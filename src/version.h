@@ -8,11 +8,15 @@
 //
 // *******************************************************************************************
 
-#define VERSION		"1.0.1"
-#define DATE		"2024-08-19"
+#define VERSION		"1.0.2"
+#define DATE		"2024-08-29"
 
 
 /********* Version history *********
+
+ 1.0.2 (2024-08-29)
+ Fixed crash in reading very large input matrices. Reduced memory requirements.
+
 
  1.0.1 (2024-08-19)
  Fixed bug in parsing floating point numbers with more than 15 decimal places.

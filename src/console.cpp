@@ -102,6 +102,8 @@ bool Console::parse(int argc, char** argv) {
 	findOption(args, PARAM_LEIDEN_BETA, leidenParams.beta);
 	findOption(args, PARAM_LEIDEN_ITERATIONS, leidenParams.numIterations);
 
+	verbose = findSwitch(args, FLAG_VERBOSE);
+
 	if (args.size() == 2) {
 		distancesFile = args[0];
 		output = args[1];

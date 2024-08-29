@@ -108,9 +108,8 @@ size_t SparseMatrixNamed::load(
 	namesBuffer = new char[1LL << 30]; // 1 GB buffer for names
 	char* raw_ptr = namesBuffer;
 
-	std::vector<int> counts;
-	std::vector<dist_t> tmp_dists;
-	tmp_dists.reserve(128LL << 20); // for 128M distances
+	// assume space for 8M objects
+	distances.reserve(8LL << 20); 
 
 	bool continueReading = true;
 	char* place = buf;
@@ -207,7 +206,6 @@ size_t SparseMatrixNamed::load(
 				// if name not mapped to numerical ids
 				if (it->second.first == -1) {
 					ids2names.push_back(it->first);
-					counts.push_back(0);
 					it->second.first = ids2names.size() - 1;
 				}
 			}
@@ -220,10 +218,24 @@ size_t SparseMatrixNamed::load(
 				continue;
 			}
 
-			++counts[i];
-			++counts[j];
+			if (distances.size() <= j) {
+				distances.resize(j + 1);
+			}
 
-			tmp_dists.emplace_back(i, j, d);
+			auto& Di = distances[i];
+			auto& Dj = distances[j];
+
+			// extend capacity by factor 1.5 with 16 as an initial state
+			if (Di.capacity() == Di.size()) {
+				Di.reserve(Di.capacity() == 0 ? 16 : size_t(Di.capacity() * 1.5)); 
+			}
+
+			if (Dj.capacity() == Dj.size()) {
+				Dj.reserve(Dj.capacity() == 0 ? 16 : size_t(Dj.capacity() * 1.5)); 
+			}
+
+			Di.emplace_back(i, j, d);
+			Dj.emplace_back(j, i, d);
 		}
 
 		// copy remaining part after consuming all the lines
@@ -236,64 +248,19 @@ size_t SparseMatrixNamed::load(
 		}
 	}
 
+	// if neccessary, sort distances in rows according to the second id	
+	n_elements = 0;
 
-	distances.resize(tmp_dists.size() * 2);
-	rows.resize(counts.size());
-	int cumulated = 0;
-	for (size_t i = 0; i < rows.size(); ++i) {
-		rows[i] = distances.data() + cumulated;
-		cumulated += counts[i];
-	}
-
-	struct row_info {
-		int n_filled{ 0 };
-		int last_id{ -1 };
-	};
-
-	std::vector <row_info> rows_info(rows.size());
-
-	// second pass - put distances in the final structure
-	for (const dist_t& dist : tmp_dists) {
-
-		uint32_t i = dist.u.s.lo;
-		uint32_t j = dist.u.s.hi;
-		double d = dist.d;
-
-		rows[i][rows_info[i].n_filled] = dist;
-		++rows_info[i].n_filled;
-		rows_info[i].last_id = j;
-
-		rows[j][rows_info[j].n_filled] = dist_t{ j,i,d };
-		++rows_info[j].n_filled;
-		rows_info[j].last_id = i;
-	}
-
-	auto end = distances.data() + distances.size();
-	rows.push_back(end);
-
-	// if neccessary, sort distances in rows according to the second id
-	dist_t* curBegin = rows[0];
-
-	for (size_t i = 0; i < rows.size() - 1; ++i) {
-		std::sort(curBegin, rows[i + 1], [](const dist_t& a, const dist_t& b) { return a.u.ids < b.u.ids; });
-		auto newEnd = std::unique(curBegin, rows[i + 1], [](const dist_t& a, const dist_t& b) { return a.u.ids == b.u.ids; });
+	for (auto& row : distances) {
+		std::sort(row.begin(), row.end(), [](const dist_t& a, const dist_t& b) { return (a.u.ids == b.u.ids) ? (a.d < b.d) : (a.u.ids < b.u.ids); });
+		auto newEnd = std::unique(row.begin(), row.end(), [](const dist_t& a, const dist_t& b) { return a.u.ids == b.u.ids; });
 		
-		if (rows[i] != curBegin) {
-			newEnd = std::copy(curBegin, newEnd, rows[i]);
-		}
-		
-		curBegin = rows[i + 1];
-		rows[i + 1] = newEnd;
-	}
+		row.erase(newEnd, row.end());
 
-	size_t newSize = rows.back() - rows.front();
-	distances.erase(distances.begin() + newSize, distances.end());
+		n_elements += row.size();
+	}
 
 	delete[] buf;
-
-	// debug stuff
-	//std::ofstream dbg("debug.log");
-	//print(dbg);
 
 	return n_total_distances;
 }
@@ -438,14 +405,10 @@ size_t SparseMatrixNumbered::load(
 	auto is_sep = [](char c) {return c == ',' || c == '\t' || c == '\r' || c == '\t'; };
 	auto is_newline = [](char c) {return c == '\r' || c == '\n'; };
 
-	std::vector<int> counts;
-
-	counts.reserve(8LL << 20); // assume space for 8M objects
+	// assume space for 8M objects
+	distances.reserve(8LL << 20);
 	global2local.reserve(8LL << 20);
 	local2global.reserve(8LL << 20);
-
-	std::vector<dist_t> tmp_dists;
-	tmp_dists.reserve(128LL << 20); // for 128M distances
 
 	bool continueReading = true;
 	char* place = buf;
@@ -553,15 +516,24 @@ size_t SparseMatrixNumbered::load(
 				continue;
 			}
 
-			// resize counts vector
-			if (j + 1 > counts.size()) {
-				counts.resize(j + 1);
+			if (distances.size() <= j) {
+				distances.resize(j + 1);
 			}
 
-			++counts[i];
-			++counts[j];
+			auto& Di = distances[i];
+			auto& Dj = distances[j];
 
-			tmp_dists.emplace_back(i, j, d);
+			// extend capacity by factor 1.5 with 16 as an initial state
+			if (Di.capacity() == Di.size()) {
+				Di.reserve(Di.capacity() == 0 ? 16 : size_t(Di.capacity() * 1.5));
+			}
+
+			if (Dj.capacity() == Dj.size()) {
+				Dj.reserve(Dj.capacity() == 0 ? 16 : size_t(Dj.capacity() * 1.5));
+			}
+
+			Di.emplace_back(i, j, d);
+			Dj.emplace_back(j, i, d);
 		}
 
 		// copy remaining part after consuming all the lines
@@ -574,60 +546,49 @@ size_t SparseMatrixNumbered::load(
 		}
 	}
 
-
-	distances.resize(tmp_dists.size() * 2);
-	rows.resize(counts.size());
-	int cumulated = 0;
-	for (size_t i = 0; i < rows.size(); ++i) {
-		rows[i] = distances.data() + cumulated;
-		cumulated += counts[i];
-	}
-
-	struct row_info {
-		int n_filled{ 0 };
-		int last_id{ -1 };
-	};
-
-	std::vector <row_info> rows_info(rows.size());
-
-	// second pass - put distances in the final structure
-	for (const dist_t& dist : tmp_dists) {
-
-		uint32_t i = dist.u.s.lo;
-		uint32_t j = dist.u.s.hi;
-		double d = dist.d;
-
-		rows[i][rows_info[i].n_filled] = dist;
-		++rows_info[i].n_filled;
-		rows_info[i].last_id = j;
-
-		rows[j][rows_info[j].n_filled] = dist_t{ j,i,d };
-		++rows_info[j].n_filled;
-		rows_info[j].last_id = i;
-	}
-
-	auto end = distances.data() + distances.size();
-	rows.push_back(end);
-
 	// if neccessary, sort distances in rows according to the second id
-	dist_t* curBegin = rows[0];
+	n_elements = 0;
 
-	for (size_t i = 0; i < rows.size() - 1; ++i) {
-		std::sort(curBegin, rows[i + 1], [](const dist_t& a, const dist_t& b) { return (a.u.ids == b.u.ids) ? (a.d < b.d) : (a.u.ids < b.u.ids); });
-		auto newEnd = std::unique(curBegin, rows[i + 1], [](const dist_t& a, const dist_t& b) { return a.u.ids == b.u.ids; });
+	for (auto& row : distances) {
+		std::sort(row.begin(), row.end(), [](const dist_t& a, const dist_t& b) { return (a.u.ids == b.u.ids) ? (a.d < b.d) : (a.u.ids < b.u.ids); });
+		auto newEnd = std::unique(row.begin(), row.end(), [](const dist_t& a, const dist_t& b) { return a.u.ids == b.u.ids; });
 
-		if (rows[i] != curBegin) {
-			newEnd = std::copy(curBegin, newEnd, rows[i]);
-		}
-
-		curBegin = rows[i + 1];
-		rows[i + 1] = newEnd;
+		row.erase(newEnd, row.end());
+		n_elements += row.size();
 	}
-
-	size_t newSize = rows.back() - rows.front();
-	distances.erase(distances.begin() + newSize, distances.end());
 
 	delete[] buf;
+
+	// Print distance histogram in the verbose mode
+	if (Log::getInstance(Log::LEVEL_VERBOSE).isEnabled()) {
+
+		std::vector<double> histo_bounds{ 0 };
+		double width = 0.001;
+
+		while (histo_bounds.back() < 0.05)
+		{
+			histo_bounds.push_back(histo_bounds.back() + width);
+		}
+		histo_bounds.push_back(std::numeric_limits<double>::max());
+		std::vector<int> histo(histo_bounds.size());
+
+		for (auto& row : distances) {
+			for (const auto& e : row) {
+				for (size_t i = 0; i < histo_bounds.size(); ++i) {
+					if (e.d < histo_bounds[i]) {
+						++histo[i];
+						break;
+					}
+				}
+			}
+		}
+
+		LOG_VERBOSE << endl << "Distance histogram" << endl;
+		for (size_t i = 0; i < histo_bounds.size(); ++i) {
+			LOG_VERBOSE << "  d < " << histo_bounds[i] << ": " << histo[i] << endl;
+		}
+		LOG_VERBOSE << endl;
+	}
 
 	return n_total_distances;
 }
@@ -760,7 +721,7 @@ void SparseMatrixNamed::print(std::ostream& out) {
 	for (auto name : names) {
 
 		int i = names2ids[name].first;
-		std::vector<dist_t> row(rows[i], rows[i + 1]);
+		std::vector<dist_t>& row = distances[i];
 
 		std::sort(row.begin(), row.end(), [this](const dist_t& a, const dist_t& b) {
 			return strcmp(ids2names[a.u.s.hi], ids2names[b.u.s.hi]) < 0;

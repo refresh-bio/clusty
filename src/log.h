@@ -55,8 +55,9 @@ public:
 	static const int LEVEL_VERBOSE;
 	static const int LEVEL_DEBUG;
 
-	void enable()	{ enabled = true; }
-	void disable()	{ enabled = false; }
+	void enable()			{ enabled = true; }
+	void disable()			{ enabled = false; }
+	bool isEnabled() const	{ return enabled; }
 	
 	// *****************************************************************************************
 	static Log& getInstance(int level) {

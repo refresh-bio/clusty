@@ -24,6 +24,7 @@
 #include "clock.h"
 #include "utils.h" 
 #include "memory_monotonic.h"
+#include "log.h"
 
 namespace linkage_algorithm_heaptrix
 {
@@ -149,7 +150,7 @@ namespace linkage_algorithm_heaptrix
 
               ht.resize(ht_size, std::make_pair(empty, nullptr));
 
-              for (const auto [idx, ptr] : ht_old)
+              for (const auto& [idx, ptr] : ht_old)
                   if (ptr)
                       insert(idx, ptr);
           }
@@ -765,15 +766,22 @@ namespace linkage_algorithm_heaptrix
       }
 
       public:
-      void read_matrix (const std::vector<std::tuple<std::size_t, std::size_t, double>> & edges)
+      void read_matrix (DistanceMatrix & m)
       {
          _matrix._rows.clear();
        
-         _heap.reserve((std::size_t)(1.1 * edges.size()));
+         _heap.reserve((std::size_t)(1.1 * m.num_elements()));
 
-         for (const auto [row_id, col_id, _value] : edges)
-            if (_value != MAX_DOUBLE and _value != INF_DOUBLE and row_id != col_id)
-               add_value(row_id, col_id, _value);
+         for (size_t i = 0; i < m.num_objects(); ++i) {
+             
+             for (const dist_t* p = m.begin(i); p < m.end(i); ++p) {
+                 const dist_t& edge = *p;
+                 if (edge.d != MAX_DOUBLE and edge.d != INF_DOUBLE and edge.u.s.lo != edge.u.s.hi)
+                     add_value(edge.u.s.lo, edge.u.s.hi, edge.d);
+             }
+
+             m.clear(i);
+         }
 
          _heap.make_heap();
       };
@@ -787,15 +795,15 @@ namespace linkage_algorithm_heaptrix
          std::size_t id_of_the_next_group = _matrix.get_max_row() + 1; // id of aggregated group
          std::size_t number_of_objects = id_of_the_next_group;
 
-         std::cerr << std::endl;
+         //std::cerr << std::endl;
 
          std::vector<element*> merged_column;
          std::vector<element*> heap_insert_buffer;
 
          while (number_of_objects > 1 and not _heap.empty())
          {
-             if(number_of_objects % 1000 == 0)
-                 std::cerr << std::to_string(number_of_objects) + "     \r";
+          //   if(number_of_objects % 1000 == 0)
+          //       std::cerr << std::to_string(number_of_objects) + "     \r";
 
             // find the minimal distance
             auto pMinimal = _heap.top(); // I am not removing it from the heap. I am only reading the value. It will be removed in row merger.
@@ -955,10 +963,11 @@ namespace linkage_algorithm_heaptrix
          mma_buf.clear();
          mma_buf.shrink_to_fit();
 
-         std::cerr << std::to_string(number_of_objects) + "     \n";
+         //std::cerr << std::to_string(number_of_objects) + "     \n";
       }
 
       public:
+      /*
       dendrogram do_clustering (const std::vector<std::vector<double>> & m)
       {
          ksi::clock stopwatch;
@@ -976,23 +985,24 @@ namespace linkage_algorithm_heaptrix
          std::cout << "done in " << elapsed_time << " s. ";
          return _dendrogram;
       }
+      */
 
       public:
-      dendrogram do_clustering (const std::vector<std::tuple<std::size_t, std::size_t, double>> & m)
+      dendrogram do_clustering (DistanceMatrix & m)
       {
          ksi::clock stopwatch;
-         std::cout << "Loading data into data structure ";
+         LOG_VERBOSE << "Loading data into heap ";
          stopwatch.start();
          read_matrix(m);
          stopwatch.stop(); 
          double elapsed_time = (double) stopwatch.elapsed_milliseconds() / 1000;
-         std::cout << "done in " << elapsed_time << " s. ";
-         std::cout << "Clustering ";
+         LOG_VERBOSE << "done in " << elapsed_time << " s. ";
+         LOG_VERBOSE << "Performing linkage ";
          stopwatch.start();
          do_clustering();
          stopwatch.stop();
          elapsed_time = (double) stopwatch.elapsed_milliseconds() / 1000;
-         std::cout << "done in " << elapsed_time << " s. ";
+         LOG_VERBOSE << "done in " << elapsed_time << " s. ";
          return _dendrogram;
       }
 
@@ -1011,13 +1021,13 @@ namespace linkage_algorithm_heaptrix
 
       public:
       int run (
-            const std::vector<std::tuple<std::size_t, std::size_t, double>> & matrix_of_distances,
+            DistanceMatrix& matrix,
             const std::vector<int>& objects,
             double threshold,
             std::vector<int>& assignments
             )
       {
-         auto dendrogram = do_clustering(matrix_of_distances);
+         auto dendrogram = do_clustering(matrix);
          std::vector<node_t> node_t_dendrogram = makeDendrogram(dendrogram, objects.size());
          assignments.resize(objects.size());
          int n_clusters = this->dendrogramToAssignments(node_t_dendrogram, threshold, assignments);
@@ -1067,7 +1077,7 @@ namespace linkage_algorithm_heaptrix
 
 std::ostream & operator << (std::ostream & sos, const std::vector<std::tuple<std::size_t, std::size_t, double>> & dist)
 {
-   for (const auto [w, k, d] : dist)
+   for (const auto& [w, k, d] : dist)
       sos << "[" << w << ", " << k << ", " << d << "] ";
    sos << std::endl;
    return sos;
@@ -1085,7 +1095,7 @@ class SingleLinkage : public linkage_algorithm_heaptrix::single_linkage<Distance
       ) override 
       {
    //      std::cout << "started" << std::endl;
-         return this->run (distances.get_distances_of_objects(), objects, threshold, assignments);
+         return this->run (distances, objects, threshold, assignments);
       }
 };
 
@@ -1101,6 +1111,6 @@ class CompleteLinkage : public linkage_algorithm_heaptrix::complete_linkage<Dist
       ) override 
       {
      //    std::cout << "started" << std::endl;
-         return this->run (distances.get_distances_of_objects(), objects, threshold, assignments);
+         return this->run (distances, objects, threshold, assignments);
       }
 };

@@ -53,6 +53,10 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
+	if (console.verbose) {
+		Log::getInstance(Log::LEVEL_VERBOSE).enable();
+	}
+
 	shared_ptr<SparseMatrix> dists;
 	std::shared_ptr<IClustering<decltype(*dists)>> clustering;
 
@@ -166,7 +170,7 @@ int main(int argc, char** argv)
 		}
 	}
 	
-	LOG_NORMAL << "Clustering... ";
+	LOG_NORMAL << "Clustering (algorithm: " << Console::algo2str(console.algo) << ")... ";
 	vector<int> assignments;
 	t = std::chrono::high_resolution_clock::now();
 
