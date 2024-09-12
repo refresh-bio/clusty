@@ -23,8 +23,10 @@ jobs:
     - name: Get tags
       run: | 
         cd ./libs/igraph
+        git fetch --prune --unshallow
         echo exit code $?
         git tag --list
+      continue-on-error: true  
   
 ########################################################################################
   make:
@@ -33,13 +35,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        machine: [x64_linux, arm64_linux]
+        machine: [x64_linux]
         leiden: [true]
+        platform: [avx2]
+        compiler: [g++-13]
         include:
+        - machine: arm64_linux
+          leiden: true
+          platform: arm8
+          compiler: g++-12
         - machine: x64_mac
           leiden: false
+          platform: avx2
+          compiler: g++-13
         - machine: arm64_mac
           leiden: false
+          platform: m1
+          compiler: g++-13
         
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']  
         
@@ -47,7 +59,7 @@ jobs:
     - name: make 
       run: |
         make clean
-        make -j32 CXX=g++-12 STATIC_LINK=true LEIDEN=${{ matrix.leiden }}
+        make -j32 CXX=${{matrix.compiler}} STATIC_LINK=true LEIDEN=${{ matrix.leiden }} PLATFORM=${{ matrix.platform }}
     - name: tar artifacts
       run: tar -cvzf clusty.tar.gz clusty LICENSE
 

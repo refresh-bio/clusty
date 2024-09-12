@@ -20,7 +20,7 @@ jobs:
     runs-on: ['${{ matrix.machine }}']   
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
     
@@ -37,7 +37,7 @@ jobs:
     - name: tar artifacts
       run: tar -cvf clusty.tar ./clusty-${{matrix.compiler}} ./test/cmp.py ./test/vir61.*
     
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: executable-artifact-${{ matrix.machine }}
         path: ./clusty.tar    
@@ -57,7 +57,7 @@ jobs:
     runs-on: ['${{ matrix.machine }}']    
     
     steps:
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v4
       with:
         name: executable-artifact-${{ matrix.machine }}
         path: ./

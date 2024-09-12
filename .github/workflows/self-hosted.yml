@@ -15,7 +15,7 @@ jobs:
     name: Checkout
     strategy:
       matrix:
-        machine: [xeon, mac-i7, mac-m1]
+        machine: [x64_linux, x64_mac, arm64_linux, arm64_mac]
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']
     
     steps:
@@ -25,9 +25,10 @@ jobs:
     - name: Get tags
       run: | 
         cd ./libs/igraph
-        #git fetch --prune --unshallow --tags
+        git fetch --prune --unshallow
         echo exit code $?
         git tag --list
+      continue-on-error: true  
     
 
   ########################################################################################
@@ -37,38 +38,30 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        machine: [xeon, mac-i7, mac-m1]
-        compiler: [g++-11]
+        machine: [x64_linux, x64_mac, arm64_linux, arm64_mac]
+        compiler: [g++-11, g++-12, g++-13]
+        include:
+        - machine: x64_linux
+          platform: avx2
+        - machine: arm64_linux
+          platform: arm8
+        - machine: x64_mac
+          platform: avx2
+        - machine: arm64_mac
+          platform: m1
+        exclude:
+        - machine: arm64_linux
+          compiler: g++-13
       
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']
 
     steps:
     - name: make
       run: | 
-        make -j32 CXX=${{matrix.compiler}} 
+        make -j32 CXX=${{matrix.compiler}} PLATFORM=${{ matrix.platform }}
         cp ./clusty ./clusty-${{matrix.compiler}}
         make clean
 
-  ########################################################################################
-  make-leiden:
-    name: make (Leiden)
-   
-    needs: checkout
-    strategy:
-      fail-fast: false
-      matrix:
-        machine: [xeon]
-        compiler: [g++-11]
-      
-    runs-on: [self-hosted, clusty, '${{ matrix.machine }}']
-
-    steps:
-    - name: make
-      run: | 
-        make -j32 CXX=${{matrix.compiler}} LEIDEN=true
-        cp ./clusty ./clusty-leiden-${{matrix.compiler}}
-        make clean
-  
   ########################################################################################                 
   toy:
     name: Toy example
@@ -76,9 +69,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        machine: [xeon, mac-i7, mac-m1]
-        compiler: [g++-11]
+        machine: [x64_linux, x64_mac, arm64_linux, arm64_mac]
+        compiler: [g++-11, g++-12, g++-13]
         algo: [single]
+        exclude:
+        - machine: arm64_linux
+          compiler: g++-13
 
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']    
     
@@ -96,10 +92,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        machine: [xeon, mac-i7, mac-m1]
-        compiler: [g++-11]
+        machine: [x64_linux, x64_mac, arm64_linux, arm64_mac]
+        compiler: [g++-11, g++-12, g++-13]
         algo: [single, complete]
         threshold: [95, 70]
+        exclude:
+        - machine: arm64_linux
+          compiler: g++-13
      
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']    
     
@@ -116,10 +115,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        machine: [xeon, mac-i7, mac-m1]
-        compiler: [g++-11]
+        machine: [x64_linux, x64_mac, arm64_linux, arm64_mac]
+        compiler: [g++-11, g++-12, g++-13]
         algo: [single, complete]
         threshold: [95, 70]
+        exclude:
+        - machine: arm64_linux
+          compiler: g++-13
      
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']    
     
@@ -151,10 +153,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        machine: [xeon, mac-i7, mac-m1]
-        compiler: [g++-11]
+        machine: [x64_linux, x64_mac, arm64_linux, arm64_mac]
+        compiler: [g++-11, g++-12, g++-13]
         algo: [single, complete, uclust, set-cover, cd-hit]
         threshold: [70]
+        exclude:
+        - machine: arm64_linux
+          compiler: g++-13
      
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']    
     
@@ -173,18 +178,49 @@ jobs:
       run: |
         ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv.num ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num --out-representatives --numeric-ids
         cmp ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num ./test/ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.csv
+
+
+ ########################################################################################
+  make-leiden:
+    name: Make (Leiden)
+   
+    needs: ictv-all
+    strategy:
+      fail-fast: false
+      matrix:
+        machine: [x64_linux, arm64_linux]
+        include:
+        - machine: x64_linux
+          compiler: g++-13
+          platform: avx2
+        - machine: arm64_linux
+          compiler: g++-12
+          platform: arm8
+      
+    runs-on: [self-hosted, clusty, '${{ matrix.machine }}']
+
+    steps:
+    - name: make
+      run: | 
+        make -j32 CXX=${{matrix.compiler}} LEIDEN=true PLATFORM=${{ matrix.platform }}
+        cp ./clusty ./clusty-leiden-${{matrix.compiler}}
+        make clean
         
   ########################################################################################   
   ictv-leiden:
-    name: ICTV (leiden)
+    name: ICTV (Leiden)
     needs: make-leiden
     strategy:
       fail-fast: false
       matrix:
-        machine: [xeon]
-        compiler: [g++-11]
+        machine: [x64_linux, arm64_linux]
         algo: [leiden]
         threshold: [70]
+        include:
+        - machine: x64_linux
+          compiler: g++-13
+        - machine: arm64_linux
+          compiler: g++-12
      
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']    
     
