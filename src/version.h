@@ -8,11 +8,17 @@
 //
 // *******************************************************************************************
 
-#define VERSION		"1.0.3"
-#define DATE		"2024-09-12"
+#define VERSION		"1.1.0"
+#define DATE		"2024-09-30"
 
 
 /********* Version history *********
+
+ 1.1.0 (2024-09-30)
+ Memory optimizatons:
+* Row identifier removed from dist_t structure.
+* Object identifiers in complete linkage stored as 32-bit integers.
+* For some clustering algorithms only edges are stored (without distances). 
 
  1.0.3 (2024-09-12)
  Fixes in building scripts.

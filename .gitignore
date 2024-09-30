@@ -8,4 +8,6 @@
 /libs/winflexbison
 /src/clusty/x64/Debug/clusty.tlog
 /src/clusty/x64/Debug
-/src
+/src/clusty/
+
+/src/clusty.vcxproj.user

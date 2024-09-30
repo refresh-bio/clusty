@@ -17,12 +17,12 @@
 #include <vector>
 #include <unordered_map>
 
-template <class DistanceMatrix>
-class CdHit : public IClustering<DistanceMatrix> {
+template <class Distance>
+class CdHit : public IClustering<Distance> {
 public:
 
 	int operator()(
-		const DistanceMatrix& distances,
+		SparseMatrix<Distance>& distances,
 		const std::vector<int>& objects,
 		double threshold,
 		std::vector<int>& assignments) override {
@@ -41,10 +41,10 @@ public:
 				assignments[obj] = cluster_id;
 
 				// iterate over connected object and assign those which are unassigned
-				for (const dist_t* edge = distances.begin(obj); edge < distances.end(obj); ++edge) {
-					int other = edge->u.s.hi;
+				for (const Distance* edge = distances.begin(obj); edge < distances.end(obj); ++edge) {
+					int other = edge->get_id();
 
-					if (edge->d <= threshold && assignments[other] == -1) {
+					if (edge->get_d() <= threshold && assignments[other] == -1) {
 						assignments[other] = cluster_id;
 					}	
 				}

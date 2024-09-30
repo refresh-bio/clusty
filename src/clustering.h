@@ -10,8 +10,9 @@
 
 #include <vector>
 #include <numeric>
+#include <algorithm>
 
-#include "distances.h"
+#include "sparse_matrix.h"
 
 struct node_t {
 	int first = -1;
@@ -23,12 +24,12 @@ struct node_t {
 		: first(first), second(second), distance(distance) {}
 };
 
-template <class DistanceMatrix>
+template <class Distance>
 class IClustering {
 public:
 
 	virtual int operator()(
-		const DistanceMatrix& distances,
+		SparseMatrix<Distance>& distances,
 		const std::vector<int>& objects,
 		double threshold,
 		std::vector<int>& assignments) = 0;
@@ -37,12 +38,12 @@ public:
 
 };
 
-template <class DistanceMatrix>
-class HierarchicalClustering : public IClustering<DistanceMatrix> {
+template <class Distance>
+class HierarchicalClustering : public IClustering<Distance> {
 protected:
 	
 	void makeDendrogram(
-		const std::vector<dist_t>& lambda,
+		const std::vector<Distance>& lambda,
 		const std::vector<int>& pi,
 		std::vector<node_t>& dendrogram) 
 	{
@@ -51,7 +52,7 @@ protected:
 		std::vector<int> elements(n_objects - 1);
 		std::iota(elements.begin(), elements.end(), 0);
 
-		stable_sort(elements.begin(), elements.end(), [&lambda](int x, int y) {
+		std::stable_sort(elements.begin(), elements.end(), [&lambda](int x, int y) {
 			return lambda[x] < lambda[y];
 			});
 
@@ -64,7 +65,7 @@ protected:
 		for (int i = 0; i < n_objects - 1; ++i) {
 			int j = elements[i];
 			int next = pi[j];
-			dendrogram.emplace_back(index[j], index[next], lambda[j].d);
+			dendrogram.emplace_back(index[j], index[next], lambda[j].get_d());
 			index[next] = n_objects + i;
 		}
 	}

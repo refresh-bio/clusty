@@ -101,9 +101,10 @@ OBJS := \
 	$(MIMALLOC_OBJ) \
 	$(MAIN_DIR)/console.o \
 	$(MAIN_DIR)/conversion.o \
-	$(MAIN_DIR)/distances.o \
+	$(MAIN_DIR)/graph.o \
 	$(MAIN_DIR)/log.o \
 	$(MAIN_DIR)/main.o \
+	$(MAIN_DIR)/params.o \
 
 %.o: %.cpp igraph
 	$(CXX) $(CFLAGS) -c $< -o $@

@@ -11,6 +11,7 @@
 #include "clustering.h"
 #include <stdexcept>
 
+
 #ifndef NO_LEIDEN
 #include <igraph.h>
 #endif
@@ -22,8 +23,9 @@ struct LeidenParams {
 	int numIterations{ 2 };
 };
 
-template <class DistanceMatrix>
-class Leiden : public IClustering<DistanceMatrix> {
+
+template <class Distance>
+class Leiden : public IClustering<Distance> {
 
 private:
 	LeidenParams params;
@@ -38,7 +40,7 @@ public:
 	}
 
 	int operator()(
-		const DistanceMatrix& distances,
+		SparseMatrix<Distance>& distances,
 		const std::vector<int>& objects,
 		double threshold,
 		std::vector<int>& assignments) override {
@@ -51,7 +53,7 @@ public:
 	Leiden(const LeidenParams& params) : params(params) {}
 	
 	int operator()(
-		const DistanceMatrix& distances,
+		SparseMatrix<Distance>& distances,
 		const std::vector<int>& objects,
 		double threshold,
 		std::vector<int>& assignments) override {
@@ -80,7 +82,7 @@ public:
 	}
 
 
-	void load_graph(const DistanceMatrix& matrix, igraph_t& g, igraph_vector_t& edge_weights) {
+	void load_graph(SparseMatrix<Distance>& matrix, igraph_t& g, igraph_vector_t& edge_weights) {
 
 		igraph_vector_int_t edges;
 		igraph_vector_int_init(&edges, 0);
@@ -88,13 +90,13 @@ public:
 		igraph_vector_init(&edge_weights, 0);
 
 		for (int i = 0; i < matrix.num_objects(); ++i) {
-			for (const dist_t* edge = matrix.begin(i); edge < matrix.end(i); ++edge) {
-				igraph_vector_int_push_back(&edges, edge->u.s.lo);
-				igraph_vector_int_push_back(&edges, edge->u.s.hi);
-				igraph_vector_push_back(&edge_weights, 1.0 - edge->d);
+			for (const Distance* edge = matrix.begin(i); edge < matrix.end(i); ++edge) {
+				igraph_vector_int_push_back(&edges, i);
+				igraph_vector_int_push_back(&edges, edge->get_id());
+				igraph_vector_push_back(&edge_weights, 1.0 - edge->get_d());
 			}
 
-			matrix.clear(i);
+			matrix.clear_row(i);
 		}
 
 		/*

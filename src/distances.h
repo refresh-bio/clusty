@@ -7,300 +7,58 @@
 // Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
 //
 // *******************************************************************************************
+#include "conversion.h"
 
-#include <vector>
-#include <unordered_map>
 #include <limits>
 #include <algorithm>
 #include <fstream>
-#include <sstream>
-#include <cstring>
-#include <iomanip>
-#include <map>
-#include <iterator>
+#include <cstdint>
 #include <functional>
 
-#include "conversion.h"
 
+/*********************************************************************************************************************/
 using distance_transformation_t = std::function<double(double)>;
 
-struct ColumnFilter {
-	double min{ std::numeric_limits<double>::lowest() };
-	double max{ std::numeric_limits<double>::max() };
-	bool enabled{ false };
-};
-
-struct dist_t {
-	static const double MAX;
+/*********************************************************************************************************************/
+#pragma pack(push, 4)
+class dist_t {
 	
-	union {
-		uint64_t ids;  ///< index (id)
-		struct {
-			uint32_t lo;   ///< numer wiersza
-			uint32_t hi;   ///< numer kolumny
-		} s;
-	} u ;
-	
-	double d;  ///< distance   std::numeric_limits<double>::max() 
+	double d;		///< distance   std::numeric_limits<double>::max() 
+	uint32_t id;	// object identifier
 
-	dist_t() :  d(std::numeric_limits<double>::max()) { u.ids = 0; }
-	dist_t(uint64_t ids, double d) :  d(d) { u.ids = ids; }
-	dist_t(uint64_t i, uint64_t j, double d) :  d(d) { u.s.lo = i;  u.s.hi = j;}
+public:
+	dist_t() : d(std::numeric_limits<double>::max()), id(0) {}
+	dist_t(uint32_t id, double d) : d(d), id(id) {}
 
-	dist_t(const std::pair<uint64_t, double>& rhs) :  d(rhs.second) { u.ids = rhs.first;}
+	double get_d() const { return d; }
+	uint32_t get_id() const { return id; }
 
-	static uint64_t pack(uint64_t i, uint64_t j) {
-		if (i >= j) {
-			std::swap(i, j);
-		}
-		return (i << 32ULL) | j;
-	}
-
-	static void unpack(uint64_t packed_ids, uint64_t& lo, uint64_t& hi) {
-		hi = packed_ids & 0xffffffff;
-		lo = packed_ids >> 32ULL;
-	}
-
-	// this is to preserve consistency with similarity variant
-	// - increasingly by distance
-	// - decreasingly by id
 	bool operator<(const dist_t& rhs) const {
-		return (d == rhs.d)
-			? (u.ids > rhs.u.ids)
-			: (d < rhs.d);
-	}
-
-	bool operator<=(const dist_t& rhs) const {
-		return (d == rhs.d)
-			? (u.ids >= rhs.u.ids)
-			: (d <= rhs.d);
+		return (id == rhs.id) ? (d < rhs.d) : (id < rhs.id);
 	}
 };
+#pragma pack(pop)
 
-
-
-class StringHasher {
-	std::hash<char> hasher;
-public:
-	StringHasher() {}
-
-	size_t operator()(const char* s) const {
-		size_t hs = hasher(*s);
-		++s;
-		while (*s) {
-			hs ^= hasher(*s);
-			++s;
-		}
-		return hs;
-	}
-};
-
-class StringEqual {
-	
-public:
-	StringEqual() {}
-
-	bool operator()(const char* a, const char* b) const {
-		return (std::strcmp(a, b) == 0);
-	}
-};
-
-
-class SparseMatrix
-{
-protected:
-
-	size_t n_elements{ 0 };
-
-	std::vector<std::vector<dist_t>> distances;
-
-	/** a vector of distances */
-	//std::vector<dist_t> distances;
-
-	/** Each row holds a pointer to the first distance in the row. 
-		The last points address right after the collection.
-	*/
-	//std::vector<dist_t*> rows; 
-
+/*********************************************************************************************************************/
+class mini_dist_t {
+	uint32_t id;	// object identifier
 
 public:
+	mini_dist_t() : id(0) {}
+	mini_dist_t(uint32_t id, double d) : id(id) {}
 
-	SparseMatrix() {}
-	
-	virtual ~SparseMatrix() {}
+	double get_d() const { return 0.0; } // mini_dist_t is always below threshold
+	uint32_t get_id() const { return id; }
 
-	size_t num_objects() const { return distances.size(); }
-
-	size_t num_elements() const { return n_elements; }
-
-	virtual size_t num_input_objects() const = 0;
-
-	const dist_t* begin(int row_id) const { return distances[row_id].data(); }
-	const dist_t* end(int row_id) const { return distances[row_id].data() + distances[row_id].size(); }
-
-	void clear(int row_id) { std::vector<dist_t>().swap(distances[row_id]); }
-
-	size_t get_num_neighbours(int i) { return distances[i].size(); }
-
-	dist_t get(uint64_t i, uint64_t j) const 
-	{
-		dist_t v {i, j, dist_t::MAX };
-		auto it = std::lower_bound(begin(i), end(i), v, [](const dist_t& a, const dist_t& b) { return a.u.s.hi < b.u.s.hi; });
-
-		return (it == end(i) || it->u.s.hi != j) ? v : *it;
+	bool operator<(const mini_dist_t& rhs) const {
+		return (id < rhs.id);
 	}
-
-	void extract_row(uint32_t row, uint32_t count, dist_t* out) const 
-	{
-		const dist_t* cur = this->begin(row);
-		const dist_t* end = this->end(row);
-		
-		for (uint32_t i = 0; i < count; ++i) 
-		{
-			if (i == row) {
-				out[i].u.s.lo = out[i].u.s.hi = row;
-				out[i].d = 0.0; // diagonal element
-			}
-			else if (cur == end || i < cur->u.s.hi) 
-			{
-				// before current or after end
-				out[i].u.s.lo = row;
-				out[i].u.s.hi = i;
-				out[i].d = std::numeric_limits<double>::max();
-			}
-			else 
-			{
-				out[i] = *cur;
-				++cur;
-			}
-		}
-	}
-
-	virtual size_t load(
-		std::ifstream& ifs,
-		const std::pair<std::string, std::string>& idColumns,
-		const std::string& distanceColumn,
-		distance_transformation_t transform,
-		std::map<std::string, ColumnFilter>& columns2filters) = 0;
-
-	virtual int saveAssignments(
-		std::ofstream& ofs,
-		const std::vector<std::string>& externalNames,
-		const std::vector<int>& assignments,
-		char separator) = 0;
-
-	virtual int saveRepresentatives(
-		std::ofstream& ofs,
-		const std::vector<std::string>& externalNames,
-		const std::vector<int>& assignments,
-		char separator) = 0;
-
-	virtual void print(std::ostream& out) = 0;
-
-protected:
-
-	void processHeader(
-		std::ifstream& ifs,
-		const std::pair<std::string, std::string>& idColumns,
-		const std::string& distanceColumn,
-		std::map<std::string, ColumnFilter>& columns2filters,
-		int idColumnsOut[2],
-		int& distanceColumnOut,
-		std::vector<ColumnFilter>& filters);
-	
 };
 
-
-
-class SparseMatrixNamed : public SparseMatrix {
-	
-	using ids_pair_t = std::pair<int, int>;
-	
-	std::unordered_map<const char*, ids_pair_t, StringHasher, StringEqual> names2ids;
-	
-	std::vector<const char*> ids2names;
-
-	char* namesBuffer{ nullptr };
-
+/*********************************************************************************************************************/
+class IMatrix {
 public:
-	~SparseMatrixNamed() {
-		delete[] namesBuffer;
-	}
-
-	size_t num_input_objects() const override { return names2ids.size(); }
-
-	int get_id(const char* name) const {
-		auto it = names2ids.find((char*)name);
-		if (it == names2ids.end()) {
-			return -1;
-		}
-		else {
-			return it->second.first;
-		}
-	}
-
-	const char* get_name(int id) const { return ids2names[id]; }
-
-	size_t load(
-		std::ifstream& ifs,
-		const std::pair<std::string, std::string>& idColumns,
-		const std::string& distanceColumn,
-		distance_transformation_t transform,
-		std::map<std::string, ColumnFilter>& columns2filters) override;
-
-	int saveAssignments(
-		std::ofstream& ofs,
-		const std::vector<std::string>& globalNames,
-		const std::vector<int>& assignments,
-		char separator) override;
-
-	int saveRepresentatives(
-		std::ofstream& ofs,
-		const std::vector<std::string>& externalNames,
-		const std::vector<int>& assignments,
-		char separator) override;
-
-	void print(std::ostream& out) override;
-
+	virtual ~IMatrix() {}
 };
 
 
-class SparseMatrixNumbered : public SparseMatrix {
-	
-	std::vector<int> global2local;
-	std::vector<int> local2global;
-
-public:
-
-	int get_local_id(int global_id) {
-		if ((size_t)global_id > global2local.size() - 1) {
-			return -1;
-		}
-		else {
-			return global2local[global_id];
-		}
-	}
-	
-	size_t num_input_objects() const override { return global2local.size(); }
-
-	size_t load(
-		std::ifstream& ifs,
-		const std::pair<std::string, std::string>& idColumns,
-		const std::string& distanceColumn,
-		distance_transformation_t transform,
-		std::map<std::string, ColumnFilter>& columns2filters) override;
-
-	int saveAssignments(
-		std::ofstream& ofs,
-		const std::vector<std::string>& globalNames,
-		const std::vector<int>& assignments,
-		char separator);
-
-	int saveRepresentatives(
-		std::ofstream& ofs,
-		const std::vector<std::string>& externalNames,
-		const std::vector<int>& assignments,
-		char separator);
-
-	void print(std::ostream& out) override {}
-};

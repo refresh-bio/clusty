@@ -133,7 +133,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -151,7 +151,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -165,9 +165,10 @@
     <ClCompile Include="..\libs\mimalloc\src\static.c" />
     <ClCompile Include="console.cpp" />
     <ClCompile Include="conversion.cpp" />
-    <ClCompile Include="distances.cpp" />
+    <ClCompile Include="graph.cpp" />
     <ClCompile Include="log.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="params.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cd_hit.h" />
@@ -179,8 +180,13 @@
     <ClInclude Include="log.h" />
     <ClInclude Include="memory_monotonic.h" />
     <ClInclude Include="distances.h" />
+    <ClInclude Include="graph.h" />
+    <ClInclude Include="params.h" />
     <ClInclude Include="set_cover.h" />
     <ClInclude Include="single_bfs.h" />
+    <ClInclude Include="sparse_matrix.h" />
+    <ClInclude Include="graph_named.h" />
+    <ClInclude Include="graph_numbered.h" />
     <ClInclude Include="uclust.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="version.h" />

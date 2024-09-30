@@ -42,12 +42,12 @@ namespace linkage_algorithm_heaptrix
       std::vector<group> groups;
    };
 
-   std::ostream & operator << (std::ostream & sos, const group & g)
+  inline std::ostream & operator << (std::ostream & sos, const group & g)
    {
       return sos << g.id << ": d(" << g.left << ", " << g.right << ") == " << g.distance;
    }
 
-   std::ostream & operator << (std::ostream & sos, const dendrogram & d)
+   inline std::ostream & operator << (std::ostream & sos, const dendrogram & d)
    {
       sos << "--------------------" << std::endl;
       for (const auto g : d.groups)
@@ -59,8 +59,8 @@ namespace linkage_algorithm_heaptrix
    }
 
 
-   template <class DistanceMatrix, typename AggregationRule>
-      class linkage : public HierarchicalClustering<DistanceMatrix> 
+   template <class Distance, typename AggregationRule>
+      class linkage : public HierarchicalClustering<Distance> 
    {
       const std::size_t MAX_SIZE_T = std::numeric_limits<std::size_t>::max(); // Index of the location in the heap. MAX means no index set.
       const double MAX_DOUBLE = std::numeric_limits<double>::max(); 
@@ -68,14 +68,15 @@ namespace linkage_algorithm_heaptrix
       const std::string MAX_LABEL {"--"};
 
       /*** An element of a matrix and a heap simultaneously.  */
+      #pragma pack(push, 8)
       struct element
       {
           double _value;              ///< stored value
-          std::size_t _row;           ///< index of a row in the matrix
-         std::size_t _column;        ///< index of a column in the matrix
-         std::size_t _index_heap;    ///< index of an element in the heap
+          int32_t _row;           ///< index of a row in the matrix
+          int32_t _column;        ///< index of a column in the matrix
+          std::size_t _index_heap;    ///< index of an element in the heap
 
-         element (const std::size_t row, const std::size_t column, const std::size_t index_heap, const double value)
+         element (const int32_t row, const int32_t column, const std::size_t index_heap, const double value)
          {
             _row = row;
             _column = column;
@@ -111,6 +112,7 @@ namespace linkage_algorithm_heaptrix
             sos << "{(" << _row << ", " << _column << ") [" << _index_heap << "] " << _value << "}";
          }
       };
+      #pragma pack(pop)
 
       class matrix_row_ht
       {
@@ -766,7 +768,7 @@ namespace linkage_algorithm_heaptrix
       }
 
       public:
-      void read_matrix (DistanceMatrix & m)
+      void read_matrix (SparseMatrix<Distance> & m)
       {
          _matrix._rows.clear();
        
@@ -774,13 +776,13 @@ namespace linkage_algorithm_heaptrix
 
          for (size_t i = 0; i < m.num_objects(); ++i) {
              
-             for (const dist_t* p = m.begin(i); p < m.end(i); ++p) {
-                 const dist_t& edge = *p;
-                 if (edge.d != MAX_DOUBLE and edge.d != INF_DOUBLE and edge.u.s.lo != edge.u.s.hi)
-                     add_value(edge.u.s.lo, edge.u.s.hi, edge.d);
+             for (const Distance* p = m.begin(i); p < m.end(i); ++p) {
+                 const Distance& edge = *p;
+                 if (edge.get_d() != MAX_DOUBLE and edge.get_d() != INF_DOUBLE and i != edge.get_id())
+                     add_value(i, edge.get_id(), edge.get_d());
              }
 
-             m.clear(i);
+             m.clear_row(i);
          }
 
          _heap.make_heap();
@@ -988,7 +990,7 @@ namespace linkage_algorithm_heaptrix
       */
 
       public:
-      dendrogram do_clustering (DistanceMatrix & m)
+      dendrogram do_clustering (SparseMatrix<Distance> & m)
       {
          ksi::clock stopwatch;
          LOG_VERBOSE << "Loading data into heap ";
@@ -1021,7 +1023,7 @@ namespace linkage_algorithm_heaptrix
 
       public:
       int run (
-            DistanceMatrix& matrix,
+            SparseMatrix<Distance>& matrix,
             const std::vector<int>& objects,
             double threshold,
             std::vector<int>& assignments
@@ -1064,18 +1066,19 @@ namespace linkage_algorithm_heaptrix
    };
    
 
-   template <class DistanceMatrix, typename AggregationRule = my_max<double>>
-      class complete_linkage : public linkage<DistanceMatrix, AggregationRule>
+   template <class Distance, typename AggregationRule = my_max<double>>
+      class complete_linkage : public linkage<Distance, AggregationRule>
    {
    };
 
-   template <class DistanceMatrix>
-      class single_linkage : public linkage<DistanceMatrix, my_min<double>> 
+   template <class Distance>
+      class single_linkage : public linkage<Distance, my_min<double>> 
    {
    };
 }
 
-std::ostream & operator << (std::ostream & sos, const std::vector<std::tuple<std::size_t, std::size_t, double>> & dist)
+
+inline std::ostream & operator << (std::ostream & sos, const std::vector<std::tuple<std::size_t, std::size_t, double>> & dist)
 {
    for (const auto& [w, k, d] : dist)
       sos << "[" << w << ", " << k << ", " << d << "] ";
@@ -1083,12 +1086,12 @@ std::ostream & operator << (std::ostream & sos, const std::vector<std::tuple<std
    return sos;
 }
 
-template <class DistanceMatrix>
-class SingleLinkage : public linkage_algorithm_heaptrix::single_linkage<DistanceMatrix> 
+template <class Distance>
+class SingleLinkage : public linkage_algorithm_heaptrix::single_linkage<Distance> 
 {
    int operator()
       (
-       const DistanceMatrix& distances,
+       SparseMatrix<Distance>& distances,
        const std::vector<int>& objects,
        double threshold,
        std::vector<int>& assignments
@@ -1099,12 +1102,12 @@ class SingleLinkage : public linkage_algorithm_heaptrix::single_linkage<Distance
       }
 };
 
-template <class DistanceMatrix>
-class CompleteLinkage : public linkage_algorithm_heaptrix::complete_linkage<DistanceMatrix> 
+template <class Distance>
+class CompleteLinkage : public linkage_algorithm_heaptrix::complete_linkage<Distance> 
 {
    int operator()
       (
-       const DistanceMatrix& distances,
+       SparseMatrix<Distance>& distances,
        const std::vector<int>& objects,
        double threshold,
        std::vector<int>& assignments

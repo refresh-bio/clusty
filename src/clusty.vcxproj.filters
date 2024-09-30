@@ -13,11 +13,12 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="console.cpp" />
     <ClCompile Include="conversion.cpp" />
-    <ClCompile Include="distances.cpp" />
+    <ClCompile Include="graph.cpp" />
     <ClCompile Include="..\libs\mimalloc\src\static.c">
       <Filter>Library Files</Filter>
     </ClCompile>
     <ClCompile Include="log.cpp" />
+    <ClCompile Include="params.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="distances.h" />
@@ -34,5 +35,10 @@
     <ClInclude Include="set_cover.h" />
     <ClInclude Include="single_bfs.h" />
     <ClInclude Include="log.h" />
+    <ClInclude Include="graph_named.h" />
+    <ClInclude Include="graph_numbered.h" />
+    <ClInclude Include="sparse_matrix.h" />
+    <ClInclude Include="graph.h" />
+    <ClInclude Include="params.h" />
   </ItemGroup>
 </Project>

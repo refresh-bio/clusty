@@ -17,12 +17,12 @@
 #include <vector>
 #include <unordered_map>
 
-template <class DistanceMatrix>
-class UClust : public IClustering<DistanceMatrix> {
+template <class Distance>
+class UClust : public IClustering<Distance> {
 public:
 
 	int operator()(
-		const DistanceMatrix& distances,
+		SparseMatrix<Distance>& distances,
 		const std::vector<int>& objects,
 		double threshold,
 		std::vector<int>& assignments) override {
@@ -41,20 +41,20 @@ public:
 		for (int i = 1; i < n_objects; ++i) {
 			obj = objects[i];
 
-			dist_t max_edge{ 0, dist_t::MAX };
-			const dist_t* closest = &max_edge;
+			Distance max_edge;
+			const Distance* closest = &max_edge;
 			
 			// select closest seed among neighbours
-			for (const dist_t* edge = distances.begin(obj); edge < distances.end(obj); ++edge) {
+			for (const Distance* edge = distances.begin(obj); edge < distances.end(obj); ++edge) {
 				
-				if (seeds2clusters.count(edge->u.s.hi) && edge->d < closest->d) {
+				if (seeds2clusters.count(edge->get_id()) && edge->get_d() < closest->get_d()) {
 					closest = edge;
 				}
 			}
 			
 			// if distance to seed is below threshold
-			if (closest->d <= threshold) {
-				assignments[obj] = seeds2clusters[closest->u.s.hi];
+			if (closest->get_d() <= threshold) {
+				assignments[obj] = seeds2clusters[closest->get_id()];
 			}
 			else {
 				int cluster_id = seeds2clusters.size();

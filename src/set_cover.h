@@ -18,12 +18,12 @@
 
 
 /** MMseqs0 clustering algorithm */
-template <class DistanceMatrix>
-class SetCover : public IClustering<DistanceMatrix> 
+template <class Distance>
+class SetCover : public IClustering<Distance> 
 {
 public:
 	int operator()(
-		const DistanceMatrix& distances,
+		SparseMatrix<Distance>& distances,
 		const std::vector<int>& objects,
 		double threshold,
 		std::vector<int>& assignments) override
@@ -37,7 +37,7 @@ public:
 		for (int i = 0; i < nObjects; ++i) {
 			int obj = objects[i];
 			obj2connections[i].first = obj;
-			obj2connections[i].second = distances.get_num_neighbours(obj);
+			obj2connections[i].second = distances.num_neighbours(obj);
 		}
 
 		std::stable_sort(obj2connections.begin(), obj2connections.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
@@ -53,9 +53,9 @@ public:
 				assignments[obj] = cluster_number; // seed of a new cluster ... 
 				
 				// ... and its neighbours:
-				for (const dist_t* edge = distances.begin(obj); edge < distances.end(obj); ++edge) {
-					auto other = edge->u.s.hi;
-					if (edge->d <= threshold && assignments[other] == NO_ASSIGNMENT) {
+				for (const Distance* edge = distances.begin(obj); edge < distances.end(obj); ++edge) {
+					auto other = edge->get_id();
+					if (edge->get_d() <= threshold && assignments[other] == NO_ASSIGNMENT) {
 						assignments[other] = cluster_number;
 					}
 				}
