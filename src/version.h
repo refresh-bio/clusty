@@ -8,11 +8,14 @@
 //
 // *******************************************************************************************
 
-#define VERSION		"1.1.0"
-#define DATE		"2024-09-30"
+#define VERSION		"1.1.1"
+#define DATE		"2024-10-05"
 
 
 /********* Version history *********
+
+ 1.1.1 (2024-10-05)
+Fixed bug with Leiden algorithm always running with default parameters.
 
  1.1.0 (2024-09-30)
  Memory optimizatons:

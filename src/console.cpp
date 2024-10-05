@@ -166,13 +166,13 @@ void Console::doClustering(
 	int n_clusters = 0;
 
 	if (needDistances(params.algo)) {
-		auto clustering = createClusteringAlgo<dist_t>(params.algo);
+		auto clustering = createClusteringAlgo<dist_t>(params);
 		IMatrix& mat = graph.getMatrix();
 		SparseMatrix<dist_t>& distances = static_cast<SparseMatrix<dist_t>&>(mat);
 		n_clusters = (*clustering)(distances, objects, threshold, assignments);
 	}
 	else {
-		auto clustering = createClusteringAlgo<mini_dist_t>(params.algo);
+		auto clustering = createClusteringAlgo<mini_dist_t>(params);
 		IMatrix& mat = graph.getMatrix();
 		SparseMatrix<mini_dist_t>& distances = static_cast<SparseMatrix<mini_dist_t>&>(mat);
 		n_clusters = (*clustering)(distances, objects, threshold, assignments);

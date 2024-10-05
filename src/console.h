@@ -53,11 +53,11 @@ protected:
 	}
 
 	template <class Distance>
-	std::unique_ptr<IClustering<Distance>> createClusteringAlgo(Algo algo) {
+	std::unique_ptr<IClustering<Distance>> createClusteringAlgo(const Params& params) {
 		
 		std::unique_ptr<IClustering<Distance>> clustering;
 
-		switch (algo)
+		switch (params.algo)
 		{
 			
 		case Algo::SingleLinkage:
