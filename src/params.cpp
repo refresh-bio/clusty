@@ -47,7 +47,7 @@ void Params::printUsage() const {
 		<< endl << endl
 		<< "  " + PARAM_LEIDEN_RESOLUTION + " - resolution parameter for Leiden algorithm (default: " << leidenParams.resolution << ")" << endl
 		<< "  " + PARAM_LEIDEN_BETA + " - beta parameter for Leiden algorithm (default: " << leidenParams.beta << ")" << endl
-		<< "  " + PARAM_LEIDEN_RESOLUTION + " - number of interations for Leiden algorithm (default: " << leidenParams.numIterations << ")"
+		<< "  " + PARAM_LEIDEN_ITERATIONS + " - number of interations for Leiden algorithm (default: " << leidenParams.numIterations << ")"
 #endif
 		<< endl << endl;
 }
