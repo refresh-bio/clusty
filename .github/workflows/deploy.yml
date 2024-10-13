@@ -17,6 +17,8 @@ jobs:
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']
     
     steps:
+    - name: clean
+      run: rm -rf ${{ github.workspace }}/*
     - uses: actions/checkout@v4
       with:
         submodules: recursive
@@ -36,30 +38,18 @@ jobs:
       fail-fast: false
       matrix:
         machine: [x64_linux]
-        leiden: [true]
         platform: [avx2]
-        compiler: [g++-13]
+        compiler: [14]
         include:
-        - machine: arm64_linux
-          leiden: true
-          platform: arm8
-          compiler: g++-12
-        - machine: x64_mac
-          leiden: false
-          platform: avx2
-          compiler: g++-13
-        - machine: arm64_mac
-          leiden: false
-          platform: m1
-          compiler: g++-13
+        - {machine: arm64_linux, platform: arm8, compiler: 12}
+        - {machine: x64_mac, platform: avx2, compiler: 12}
+        - {machine: arm64_mac, platform: m1, compiler: 12}
         
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']  
         
     steps:
     - name: make 
-      run: |
-        make clean
-        make -j32 CXX=${{matrix.compiler}} STATIC_LINK=true LEIDEN=${{ matrix.leiden }} PLATFORM=${{ matrix.platform }}
+      run: make -j32 CXX=g++-${{matrix.compiler}} CC=gcc-${{matrix.compiler}} PLATFORM=${{ matrix.platform }} LEIDEN=true
     - name: tar artifacts
       run: tar -cvzf clusty.tar.gz clusty LICENSE
 

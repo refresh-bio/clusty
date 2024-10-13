@@ -67,17 +67,17 @@ else
 endif
 
 
-ifeq ($(STATIC_LINK), true) 
+ifeq ($(DYNAMIC_LINK), true)
+    CFLAGS	= -Wall -O3 $(ARCH_FLAGS) -std=c++17 $(DEFINE_FLAGS) $(INCLUDES) -pthread 
+    CLINK	= -lm -O3 -std=c++17 -pthread $(ABI_FLAGS) 
+else
 ifeq ($(uname_S),Darwin)
     CFLAGS  = -Wall -O3 $(ARCH_FLAGS) -std=c++17 $(DEFINE_FLAGS) $(INCLUDES)
     CLINK	= -lm -O3 -std=c++17 $(ABI_FLAGS) -static-libgcc
 else
     CFLAGS  = -Wall -O3 $(ARCH_FLAGS) -std=c++17 $(DEFINE_FLAGS) $(INCLUDES) -static -Wl,--whole-archive -lpthread -Wl,--no-whole-archive
     CLINK	= -lm -static -O3 -std=c++17 $(ABI_FLAGS) -Wl,--whole-archive -lpthread -Wl,--no-whole-archive
-endif
-else
-    CFLAGS	= -Wall -O3 $(ARCH_FLAGS) -std=c++17 $(DEFINE_FLAGS) $(INCLUDES) -pthread 
-    CLINK	= -lm -O3 -std=c++17 -pthread $(ABI_FLAGS) 
+endif  
 endif
 
 ifeq ($(LEIDEN), true)  

@@ -2,7 +2,7 @@
 
 [![Bioconda downloads](https://img.shields.io/conda/dn/bioconda/clusty.svg?style=flag&label=Bioconda%20downloads)](https://anaconda.org/bioconda/clusty)
 [![GitHub downloads](https://img.shields.io/github/downloads/refresh-bio/clusty/total.svg?style=flag&label=GitHub%20downloads)](https://github.com/refresh-bio/clusty/releases)
-[![GitHub Actions CI](../../workflows/GitHub%20Actions%20CI/badge.svg)](../../actions/workflows/main.yml)
+[![Build and tests](../../workflows/GitHub%20Actions%20CI/badge.svg)](../../actions/workflows/main.yml)
 [![License](https://anaconda.org/bioconda/famsa/badges/license.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
 
 ![x86-64](https://img.shields.io/static/v1?label=%E2%80%8B&message=x86-64&color=yellow&logo=PCGamingWiki&logoColor=white)
@@ -43,7 +43,7 @@ cd ./test
 
 ## Installation
 
-Clusty comes with a set of precompiled binaries for Windows and Linux. They can be found under [Releases](./releases) tab.
+Clusty comes with a set of precompiled binaries for Windows, Linux, and macOS. They can be found under [Releases](./releases) tab.
 The software is also available on [Bioconda](https://anaconda.org/bioconda/clusty):
 ```
 conda install -c bioconda clusty
@@ -52,9 +52,16 @@ For detailed instructions how to set up Bioconda, please refer to the [Bioconda 
 
 The package can be built from the sources distributed as:
 * Visual Studio 2022 solution for Windows,
-* MAKE project for Linux (g++-10 required).
+* MAKE project for Linux and macOS (g++-10 required).
 
-Clusty provides igraph's implementation of the Leiden algorithm. However, as igraph requires several external dependencies (CMake 3.18, Flex, Bison), it is by default not linked to the Clusty software. To install dependencies under Debian/Ubuntu linux use the following command:
+To compile Clusty under Linux/macOS please run:
+```
+make -j 
+```
+
+### Leiden algorithm
+
+Clusty provides igraph's implementation of the Leiden algorithm. Precompiled binaries as well as bioconda distributions include Leiden algorithm. However, as igraph requires several external dependencies (CMake 3.18, Flex, Bison), it is by default not linked to the Clusty software. To install dependencies under Debian/Ubuntu linux use the following command:
 ```
 sudo apt-get install cmake flex bison
 ```
