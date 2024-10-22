@@ -8,13 +8,16 @@
 //
 // *******************************************************************************************
 
-#define VERSION		"1.1.2"
-#define DATE		"2024-10-13"
+#define VERSION		"1.1.3"
+#define DATE		"2024-10-21"
 
 
 /********* Version history *********
 
-1.1.2
+1.1.3 (2024-10-21)
+* Added `--version` switch.
+
+1.1.2 (2024-10-13)
 * Precompiled binaries for macOS include Leiden algorithm.
 * Fixed small bug with `--leiden-iterations` param being displayed in help as `--leiden-resolution`.
 

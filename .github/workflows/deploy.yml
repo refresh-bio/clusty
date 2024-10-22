@@ -67,6 +67,8 @@ jobs:
     steps:
     - name: help
       run: ./clusty
+    - name: version
+      run: ./clusty --version
 
 ########################################################################################
   upload:

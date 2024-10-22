@@ -29,23 +29,32 @@ using namespace std;
 bool Console::init(int argc, char** argv, Params& params) {
 	Log::getInstance(Log::LEVEL_NORMAL).enable();
 
-	LOG_NORMAL << "Clusty" << endl
-		<< "  version " << VERSION
-#ifdef GIT_COMMIT
-		<< "-" << TOSTRING(GIT_COMMIT)
-#endif
-		<< " (" << DATE << ")" << endl << endl;
+	Params::Status status = params.parse(argc, argv);
 
-	if (!params.parse(argc, argv)) {
-		params.printUsage();
+	if (status == Params::Status::ShowVersion) {
+		LOG_NORMAL << VERSION;
 		return false;
 	}
+	else {
 
-	if (params.verbose) {
-		Log::getInstance(Log::LEVEL_VERBOSE).enable();
+		LOG_NORMAL << "Clusty" << endl
+			<< "  version " << VERSION
+#ifdef GIT_COMMIT
+			<< "-" << TOSTRING(GIT_COMMIT)
+#endif
+			<< " (" << DATE << ")" << endl << endl;
+
+		if (status == Params::Status::Incorrect) {
+			params.printUsage();
+			return false;
+		}
+
+		if (params.verbose) {
+			Log::getInstance(Log::LEVEL_VERBOSE).enable();
+		}
+
+		return true;
 	}
-
-	return true;
 }
 
 // *******************************************************************************************

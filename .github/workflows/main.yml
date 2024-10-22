@@ -64,10 +64,15 @@ jobs:
       with:
         name: executable-artifact-${{ matrix.machine }}
         path: ./
-
+        
     - name: untar artifacts
-      run: |
-        tar -xf clusty.tar
+      run: tar -xf clusty.tar
+    
+    - name: help
+      run: ./clusty-${{matrix.compiler}}
+    
+    - name: version
+      run: ./clusty-${{matrix.compiler}} --version
     
     - name: ${{matrix.algo}}, ${{matrix.threshold}} (with representatives, reordered columns)
       run: |

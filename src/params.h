@@ -29,6 +29,7 @@ enum class DistanceSpecification {
 	PercentSimilarity
 };
 
+
 class Params {
 	const std::string PARAM_ALGO{ "--algo" };
 
@@ -51,8 +52,15 @@ class Params {
 	const std::string PARAM_LEIDEN_ITERATIONS{ "--leiden-iterations" };
 
 	const std::string FLAG_VERBOSE{ "-v" };
+	const std::string FLAG_VERSION{ "--version" };
 
 public:
+	enum Status {
+		Correct,
+		Incorrect,
+		ShowVersion
+	};
+	
 	static Algo str2algo(const std::string& str)
 	{
 		if (str == "single") { return Algo::SingleLinkage; }
@@ -101,7 +109,7 @@ public:
 	bool verbose{ false };
 
 	void printUsage() const;
-	bool parse(int argc, char** argv);
+	Status parse(int argc, char** argv);
 
 	bool findSwitch(std::vector<std::string>& params, const std::string& name) {
 		auto it = find(params.begin(), params.end(), name); // verbose mode

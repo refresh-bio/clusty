@@ -10,6 +10,7 @@
 #include "distances.h"
 #include "log.h"
 #include "leiden.h"
+#include "version.h"
 
 #include <vector>
 #include <fstream>
@@ -41,7 +42,8 @@ void Params::printUsage() const {
 		<< "  " + PARAM_MAX + " <column-name> <real-threshold> - accept pairwise connections with values lower or equal given threshold in a specified column" << endl
 		<< "  " + FLAG_NUMERIC_IDS + " - use when sequences in the distances file are represented by numbers (can be mapped to string ids by the object file)" << endl
 		<< "  " + FLAG_OUT_REPRESENTATIVES + " - output a representative object for each cluster instead of a cluster numerical identifier (default: " << std::boolalpha << outputRepresentatives << ")" << endl
-		<< "  " + FLAG_OUT_CSV + " - output a CSV table instead of a default TSV (default: " << std::boolalpha << outputCSV << ")"
+		<< "  " + FLAG_OUT_CSV + " - output a CSV table instead of a default TSV (default: " << std::boolalpha << outputCSV << ")" << endl
+		<< "  " + FLAG_VERSION + " - show Clusty version"
 
 #ifndef NO_LEIDEN
 		<< endl << endl
@@ -53,65 +55,68 @@ void Params::printUsage() const {
 }
 
 
-bool Params::parse(int argc, char** argv) {
+Params::Status Params::parse(int argc, char** argv) {
 
 	vector<string> args;
 	for (int i = 1; i < argc; ++i) {
 		args.emplace_back(argv[i]);
 	}
 
-	if (args.size() < 2) {
-		return false;
+	if (findSwitch(args, FLAG_VERSION)) {
+		return Status::ShowVersion;
 	}
 
-	std::string tmp;
-	findOption(args, PARAM_ALGO, tmp);
-	if (tmp.length()) {
-		algo = str2algo(tmp);
+	if (args.size() >= 2) {
+
+		std::string tmp;
+		findOption(args, PARAM_ALGO, tmp);
+		if (tmp.length()) {
+			algo = str2algo(tmp);
+		}
+
+		findOption(args, PARAM_FILE_OBJECTS, objectsFile);
+
+		findOption(args, PARAM_ID_COLUMNS, idColumns.first, idColumns.second);
+		numericIds = findSwitch(args, FLAG_NUMERIC_IDS);
+
+		findOption(args, PARAM_DISTANCE_COLUMN, distanceColumn);
+
+		bool use_similarity = findSwitch(args, FLAG_SIMILARITY);
+		bool use_percent_similarity = findSwitch(args, FLAG_PERCENT_SIMILARITY);
+
+		if (use_percent_similarity) {
+			distanceSpecification = DistanceSpecification::PercentSimilarity;
+		}
+		else if (use_similarity) {
+			distanceSpecification = DistanceSpecification::Similarity;
+		}
+
+		string column;
+		double value;
+		while (findOption(args, PARAM_MIN, column, value)) {
+			columns2filters[column].min = std::max(value, columns2filters[column].min);
+		}
+		while (findOption(args, PARAM_MAX, column, value)) {
+			columns2filters[column].max = std::min(value, columns2filters[column].max);
+		}
+
+		outputRepresentatives = findSwitch(args, FLAG_OUT_REPRESENTATIVES);
+		outputCSV = findSwitch(args, FLAG_OUT_CSV);
+
+		// leiden parameters
+		findOption(args, PARAM_LEIDEN_RESOLUTION, leidenParams.resolution);
+		findOption(args, PARAM_LEIDEN_BETA, leidenParams.beta);
+		findOption(args, PARAM_LEIDEN_ITERATIONS, leidenParams.numIterations);
+
+		verbose = findSwitch(args, FLAG_VERBOSE);
+
+		if (args.size() == 2) {
+			distancesFile = args[0];
+			output = args[1];
+			return Status::Correct;
+		}
 	}
 
-	findOption(args, PARAM_FILE_OBJECTS, objectsFile);
-
-	findOption(args, PARAM_ID_COLUMNS, idColumns.first, idColumns.second);
-	numericIds = findSwitch(args, FLAG_NUMERIC_IDS);
-
-	findOption(args, PARAM_DISTANCE_COLUMN, distanceColumn);
-
-	bool use_similarity = findSwitch(args, FLAG_SIMILARITY);
-	bool use_percent_similarity = findSwitch(args, FLAG_PERCENT_SIMILARITY);
-
-	if (use_percent_similarity) {
-		distanceSpecification = DistanceSpecification::PercentSimilarity;
-	}
-	else if (use_similarity) {
-		distanceSpecification = DistanceSpecification::Similarity;
-	}
-
-	string column;
-	double value;
-	while (findOption(args, PARAM_MIN, column, value)) {
-		columns2filters[column].min = std::max(value, columns2filters[column].min);
-	}
-	while (findOption(args, PARAM_MAX, column, value)) {
-		columns2filters[column].max = std::min(value, columns2filters[column].max);
-	}
-
-	outputRepresentatives = findSwitch(args, FLAG_OUT_REPRESENTATIVES);
-	outputCSV = findSwitch(args, FLAG_OUT_CSV);
-
-	// leiden parameters
-	findOption(args, PARAM_LEIDEN_RESOLUTION, leidenParams.resolution);
-	findOption(args, PARAM_LEIDEN_BETA, leidenParams.beta);
-	findOption(args, PARAM_LEIDEN_ITERATIONS, leidenParams.numIterations);
-
-	verbose = findSwitch(args, FLAG_VERBOSE);
-
-	if (args.size() == 2) {
-		distancesFile = args[0];
-		output = args[1];
-		return true;
-	}
-
-	return false;
+	return Status::Incorrect;
 }
 

@@ -74,6 +74,10 @@ jobs:
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']    
     
     steps:
+    - name: help
+      run:  ./clusty-${{matrix.compiler}}
+    - name: version
+      run:  ./clusty-${{matrix.compiler}} --version
     - name: ${{matrix.algo}} (no representatives, numeric ids, singletons in object file)
       run: |
         ./clusty-${{matrix.compiler}} --objects-file ./test/toy.ids.tsv --algo ${{matrix.algo}} --id-cols idx1 idx2 --distance-col tani --similarity --numeric-ids --min tani 0.95 ./test/toy.ani.tsv toy.${{matrix.algo}}.tsv
