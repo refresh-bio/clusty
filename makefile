@@ -80,11 +80,19 @@ else
 endif  
 endif
 
+
+
+CMAKE_OSX_SYSROOT_FLAG =
+ifeq ($(uname_S),Darwin)
+	SDK_PATH := $(shell $(CXX) -v 2>&1 | grep -- '--with-sysroot' | sed -E 's/.*--with-sysroot=([^ ]+).*/\1/')
+	CMAKE_OSX_SYSROOT_FLAG := -DCMAKE_OSX_SYSROOT=$(SDK_PATH)
+endif
+
 ifeq ($(LEIDEN), true)  
 igraph:
 	mkdir libs/igraph/build 
-	cmake -S libs/igraph -B libs/igraph/build
-	cmake -S libs/igraph -B libs/igraph/build
+	cmake $(CMAKE_OSX_SYSROOT_FLAG) -DIEEE754_DOUBLE_ENDIANNESS_MATCHES=TRUE -DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX) -S libs/igraph -B libs/igraph/build 
+	cmake $(CMAKE_OSX_SYSROOT_FLAG) -DIEEE754_DOUBLE_ENDIANNESS_MATCHES=TRUE -DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX) -S libs/igraph -B libs/igraph/build  
 	cmake --build libs/igraph/build
 else
 igraph:

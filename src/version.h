@@ -8,11 +8,14 @@
 //
 // *******************************************************************************************
 
-#define VERSION		"1.1.3"
-#define DATE		"2024-10-21"
+#define VERSION		"1.1.4"
+#define DATE		"2024-11-06"
 
 
 /********* Version history *********
+
+1.1.4 (2024-11-06)
+* macOS compilation fix: SDK setting for igraph.
 
 1.1.3 (2024-10-21)
 * Added `--version` switch.
