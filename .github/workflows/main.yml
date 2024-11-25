@@ -15,14 +15,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        machine: [ubuntu-latest, macOS-12]
+        machine: [ubuntu-latest]
+        gmake_install_command: ['gmake --version']
         compiler: [12]
+        include:
+        - {machine: macOS-13, gmake_install_command: 'brew install make && gmake --version', compiler: 12}
+        
     runs-on: ['${{ matrix.machine }}']   
 
     steps:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
+
+    - name: install gmake
+      run: ${{ matrix.gmake_install_command }}    
     
     - name: get tags
       run: | 
@@ -34,9 +41,9 @@ jobs:
     
     - name: make
       run: | 
-        make -j32 CXX=g++-${{matrix.compiler}} CC=gcc-${{matrix.compiler}}
-        cp ./clusty ./clusty-${{matrix.compiler}}
-        make clean
+        gmake -j32 CXX=g++-${{matrix.compiler}} CC=gcc-${{matrix.compiler}} STATIC_LINK=true
+        cp ./bin/clusty ./clusty-${{matrix.compiler}}
+        gmake clean
     - name: tar artifacts
       run: tar -cvf clusty.tar ./clusty-${{matrix.compiler}} ./test/cmp.py ./test/vir61.*
     
@@ -52,7 +59,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        machine: [ubuntu-latest, macOS-12]
+        machine: [ubuntu-latest, macOS-13]
         compiler: [12]
         algo: [single, complete]
         threshold: [95, 70]

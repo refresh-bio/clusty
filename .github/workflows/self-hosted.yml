@@ -54,9 +54,9 @@ jobs:
     steps:
     - name: make
       run: | 
-        make -j32 CXX=g++-${{matrix.compiler}} CC=gcc-${{matrix.compiler}} PLATFORM=${{ matrix.platform }} LEIDEN=true
-        cp ./clusty ./clusty-${{matrix.compiler}}
-        make clean
+        gmake -j32 CXX=g++-${{matrix.compiler}} CC=gcc-${{matrix.compiler}} PLATFORM=${{ matrix.platform }} LEIDEN=true STATIC_LINK=true
+        cp ./bin/clusty ./clusty-${{matrix.compiler}}
+        gmake clean
 
   ########################################################################################                 
   toy:

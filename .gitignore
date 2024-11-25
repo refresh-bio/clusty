@@ -11,3 +11,5 @@
 /src/clusty/
 
 /src/clusty.vcxproj.user
+/obj
+/bin

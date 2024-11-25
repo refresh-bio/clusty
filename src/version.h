@@ -8,11 +8,14 @@
 //
 // *******************************************************************************************
 
-#define VERSION		"1.1.4"
-#define DATE		"2024-11-06"
+#define VERSION		"1.1.5"
+#define DATE		"2024-11-21"
 
 
 /********* Version history *********
+
+1.1.5 (2024-11-21)
+* New makefile.
 
 1.1.4 (2024-11-06)
 * macOS compilation fix: SDK setting for igraph.

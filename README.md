@@ -20,23 +20,23 @@ Clusty is a tool for large-scale clustering. By using sparse distance matrices i
 ```bash
 git clone --recurse-submodules https://github.com/refresh-bio/clusty
 cd clusty
-make -j
+gmake -j
 
 cd ./test
 
 # Run single linkage clustering on the pairwise similarities stored in ictv.ani file, output cluster identifiers
 # (two first columns are used as sequence identifiers, third one is assumed to store similarities).
-../clusty --algo single --similarity ictv.ani ictv.single
+../bin/clusty --algo single --similarity ictv.ani ictv.single
 
 # Run uclust clustering accepting pairwise connectios with values greater or equal 0.70 in the ani column, output cluster representatives.
-../clusty --algo uclust --similarity --min ani 0.70 --out-representatives ictv.ani ictv.uclust.70
+../bin/clusty --algo uclust --similarity --min ani 0.70 --out-representatives ictv.ani ictv.uclust.70
 
 # Run CD-HIT clustering accepting pairwise connectios with values greater or equal 0.95 in the ani column, output cluster identifiers
 # (use id2 and id2 columns as object identifiers and ani column as the similarity).
-../clusty --algo cd-hit --similarity --min ani 0.95 --id-cols id2 id1 --distance-col ani vir61.ani vir61.single.95
+../bin/clusty --algo cd-hit --similarity --min ani 0.95 --id-cols id2 id1 --distance-col ani vir61.ani vir61.single.95
 
 # Run complete linkage clustering, consider all objects from ictv.list file (including those without pairwise connections).
-../clusty --algo complete --objects-file ictv.list --similarity ictv.ani ictv.complete
+../bin/clusty --algo complete --objects-file ictv.list --similarity ictv.ani ictv.complete
 
 ```
 
@@ -52,11 +52,11 @@ For detailed instructions how to set up Bioconda, please refer to the [Bioconda 
 
 The package can be built from the sources distributed as:
 * Visual Studio 2022 solution for Windows,
-* MAKE project for Linux and macOS (g++-10 required).
+* GNU Make project for Linux and macOS (gmake 4.3 and gcc/g++ 10 or newer required)
 
 To compile Clusty under Linux/macOS please run:
 ```
-make -j 
+gmake -j 
 ```
 
 ### Leiden algorithm
@@ -65,9 +65,9 @@ Clusty provides igraph's implementation of the Leiden algorithm. Precompiled bin
 ```
 sudo apt-get install cmake flex bison
 ```
-Then, one need to build the package with an additional option enabled:
+Then, one needs to build the package with an additional option enabled:
 ```
-make -j LEIDEN=true
+gmake -j LEIDEN=true
 ```
 
 Under Windows, Clusty is by default linked against igraph and it requires CMake as the only system dependency. After installing it (https://cmake.org) a user can run `build_igraph.bat` batch script which downloads Flex and Bison binaries to the appropriate locations and then builds igraph. After that it is possible to build Clusty using Visual Studio (the solution is located in `./src/clusty.sln`).
@@ -107,7 +107,7 @@ Options:
 * `--leiden-iterations` - number of interations for Leiden algorithm (default: 2)
 
 
-The minimum input requirement is a CSV/TSV table with pairwise distances between objects (or similarities, if `--use-similarity` flag is used). By default, identifiers are assumed to be in the two first columns while distances are expected in the third one. Lack of a distance for a given pair of objects is translated to infinite distance. The example input table is given below:
+The minimum input requirement is a TSV/CSV table with pairwise distances between objects (or similarities, if `--use-similarity` flag is used). By default, identifiers are assumed to be in the two first columns while distances are expected in the third one. Lack of a distance for a given pair of objects is translated to infinite distance. The example input table is given below:
 ```
 id1,id2,distance
 a,b,0.04
@@ -167,14 +167,8 @@ f	e
 
 In the following section one can find detailed information on clustering algorithms in Clusty, with *n* representing the number of objects (vertices) and *e* the number of distances (edges) in the data set (graph).
 
-| Algorithm  | Details | Time complexity |
-| ------------- | ------------- | ------------- |
-| Single linkage | Hierarchical agglomerative clustering with a distance between groups defined as a distance between their closest members. Equivalent to finding all consistent subgraphs in a graph. Performed using breadth-first search. | *O*(*e*) |
-| Complete linkage | Hierarchical agglomerative clustering with a distance between groups defined as a distance between their furthest members. Equivalent to finding a disjoint set of complete subgraphs covering the entire graph. Fast identification of clusters to merge is performed by storing distances in a heap. | *O*(*e* log*e*) |
-| UCLUST | Greedy clustering with objects investigated in descending order w.r.t. representativeness. The first object becomes a centroid; the following objects are either (a) assigned to the closest of centroids they are connected with or (b) become new centroids if they are not connected to any of the existing ones. | *O*(*e*) |
-| Greedy set cover | Greedy clustering with objects investigated in descending order w.r.t. the number of neighbors. Every unassigned object becomes a new centroid with all connected objects being assigned to it. Equivalent to MMseqs mode 0 clustering.  |  *O*(*n* log*n* + *e*) |
-| CD-HIT | Greedy clustering with objects investigated in descending order w.r.t. the representativeness. Every unassigned object becomes a new centroid with all connected objects being assigned to it. Equivalent to MMseqs mode 2 clustering. | *O*(*e*) |
-| Leiden | Iterative heuristic for finding communities in networks. It consists of three phases: (1) local moving of nodes, (2) refinement of the partition, and (3) aggregation of the network using the refined and the non-refined partitions. | unknown (algorithm provided by an external library) |
+![clustering-steps](https://github.com/user-attachments/assets/6d325442-0474-4759-8fff-4c732b97b080)
+
 
 ## Citation
 Zielezinski A, Gudyś A, Barylski J, Siminski K, Rozwalak P, Dutilh BE, Deorowicz S. Ultrafast and accurate sequence alignment and clustering of viral genomes. bioRxiv [doi:10.1101/2024.06.27.601020].
