@@ -167,7 +167,8 @@ f	e
 
 In the following section one can find detailed information on clustering algorithms in Clusty, with *n* representing the number of objects (vertices) and *e* the number of distances (edges) in the data set (graph).
 
-![clustering-steps](https://github.com/user-attachments/assets/6d325442-0474-4759-8fff-4c732b97b080)
+
+![clustering-steps](https://github.com/user-attachments/assets/08c1d9ee-94eb-49c2-9999-1c4850aa2cc9)
 
 
 ## Citation
