@@ -2,7 +2,7 @@
 // This file is a part of Clusty software distributed under GNU GPL 3 license.
 // The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
 //
-// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+// Copyright(C) 2024-2025, A.Gudys, K.Siminski, S.Deorowicz
 //
 // *******************************************************************************************
 
@@ -37,7 +37,7 @@ std::string Log::formatLargeNumber(uint64_t num, int minWidth) {
 
 	} while (num > 0);
 
-	int initialSpaces = minWidth - out.length();
+	int initialSpaces = minWidth - (int)out.length();
 
 	if (initialSpaces > 0) {
 		out = string(initialSpaces, ' ') + out;

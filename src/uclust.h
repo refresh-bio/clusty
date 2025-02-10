@@ -4,7 +4,7 @@
 // This file is a part of Clusty software distributed under GNU GPL 3 license.
 // The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
 //
-// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+// Copyright(C) 2024-2025, A.Gudys, K.Siminski, S.Deorowicz
 //
 // *******************************************************************************************
 
@@ -28,7 +28,7 @@ public:
 		std::vector<int>& assignments) override {
 
 		std::unordered_map<int,int> seeds2clusters;
-		int n_objects = objects.size();
+		int n_objects = (int)objects.size();
 
 		assignments.resize(objects.size(), -1);
 
@@ -57,13 +57,13 @@ public:
 				assignments[obj] = seeds2clusters[closest->get_id()];
 			}
 			else {
-				int cluster_id = seeds2clusters.size();
+				int cluster_id = (int)seeds2clusters.size();
 				seeds2clusters.insert({ obj, cluster_id });
 				assignments[obj] = cluster_id;
 			}
 		}
 
-		return seeds2clusters.size();
+		return (int)seeds2clusters.size();
 	}
 };
 

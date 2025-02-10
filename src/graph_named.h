@@ -2,113 +2,76 @@
 // This file is a part of Clusty software distributed under GNU GPL 3 license.
 // The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
 //
-// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+// Copyright(C) 2024-2025, A.Gudys, K.Siminski, S.Deorowicz
 //
 // *******************************************************************************************
 #pragma once
-#include "sparse_matrix.h"
-#include "graph.h"
+#include "graph_sparse.h"
+#include "hasher.h"
+#include "io.h"
+#include "chunked_vector.h"
 
 #include <iostream>
 #include <limits>
 #include <unordered_map>
 #include <vector>
+#include <cstdint>
+#include <string>
 
-
-
-// *******************************************************************************************
-class StringHasher {
-	std::hash<char> hasher;
-public:
-	StringHasher() {}
-
-	size_t operator()(const char* s) const {
-		size_t hs = hasher(*s);
-		++s;
-		while (*s) {
-			hs ^= hasher(*s);
-			++s;
-		}
-		return hs;
-	}
+// *******************************************************************************************/
+union name_or_id_t { 
+	std::string_view name; 
+	int id; 
+	
+	name_or_id_t() : id{0} {}
 };
 
-// *******************************************************************************************
-class StringEqual {
-
-public:
-	StringEqual() {}
-
-	bool operator()(const char* a, const char* b) const {
-		return (std::strcmp(a, b) == 0);
-	}
-};
+using NamedEdgesCollection = EdgesCollection<name_or_id_t>;
 
 /*********************************************************************************************************************/
 template <class Distance>
-class GraphNamed : public Graph {
+class GraphNamed : public GraphSparse<Distance> {
 
 	using ids_pair_t = std::pair<int, int>;
 
-	SparseMatrix<Distance> matrix;
+	std::unordered_map<std::string_view, ids_pair_t, Murmur64_full<std::string_view>> names2ids;
 
-	std::unordered_map<const char*, ids_pair_t, StringHasher, StringEqual> names2ids;
+	std::vector<std::string_view> ids2names;
 
-	std::vector<const char*> ids2names;
-
-	char* namesBuffer{ nullptr };
+	chunked_vector<char> namesBuffer{ 16LL << 20 }; // 16MB chunk size
 
 public:
-	~GraphNamed() {
-		delete[] namesBuffer;
-	}
-
-	IMatrix& getMatrix() override { return matrix; }
-
-	size_t getNumVertices() const override { return matrix.num_objects(); }
+	GraphNamed(int numThreads) : GraphSparse<Distance>(numThreads) {}
 
 	size_t getNumInputVertices() const override { return this->names2ids.size(); }
 
-	size_t getNumEdges() const override { return matrix.num_elements(); }
-
 	void reorderObjects(
-		const std::vector<std::string>& externalNames,
+		const std::vector<std::string_view>& externalNames,
 		std::vector<int>& objects) const override {
 
 		int obj_id = 0;
-		for (const std::string& name : externalNames) {
-			int local_id = get_id(name.c_str());
+		for (const auto& name : externalNames) {
+			int local_id = get_id(name);
 			if (local_id != -1) {
 				objects[obj_id++] = local_id;
 			}
 		}
 	}
-
-	size_t load(
-		std::ifstream& ifs,
-		const std::pair<std::string, std::string>& idColumns,
-		const std::string& distanceColumn,
-		distance_transformation_t transform,
-		const std::map<std::string, ColumnFilter>& columns2filters) override;
+	
 
 	int saveAssignments(
 		std::ofstream& ofs,
-		const std::vector<std::string>& globalNames,
+		const std::vector<std::string_view>& globalNames,
 		const std::vector<int>& assignments,
-		char separator) const override;
-
-	int saveRepresentatives(
-		std::ofstream& ofs,
-		const std::vector<std::string>& externalNames,
-		const std::vector<int>& assignments,
-		char separator) const override;
+		char separator,
+		bool useRepresentatives) const override;
 
 	void print(std::ostream& out) const override;
 
 protected:
-	
-	int get_id(const char* name) const {
-		auto it = names2ids.find((char*)name);
+
+	int get_id(const std::string_view& name) const {
+		auto it = names2ids.find(name);
 		if (it == names2ids.end()) {
 			return -1;
 		}
@@ -116,311 +79,293 @@ protected:
 			return it->second.first;
 		}
 	}
+	
+	IEdgesCollection* createEdgesCollection(size_t preallocSize) override { 
+		return new NamedEdgesCollection(preallocSize);
+	};
+
+	void initLoad() override;
+
+	bool parseBlock(
+		char* block_begin,
+		char* block_end,
+		distance_transformation_t transform,
+		IEdgesCollection& edges,
+		size_t& n_rows)  override;
+
+	void updateMappings(
+		IEdgesCollection& edges) override;
+
+	void extendMatrix() override;
+
+	void updateMatrix(
+		const IEdgesCollection& edges,
+		int startRow,
+		int stride) override;
+
 };
 
-
-
 /*********************************************************************************************************************/
 template <class Distance>
-size_t GraphNamed<Distance>::load(
-	std::ifstream& ifs,
-	const std::pair<std::string, std::string>& idColumns,
-	const std::string& distanceColumn,
-	distance_transformation_t transform,
-	const std::map<std::string, ColumnFilter>& columns2filters) {
+void GraphNamed<Distance>::initLoad() {
 
-	size_t n_total_distances = 0;
-	const size_t N = 512ULL << 20; // 128MB buffer
-	char* buf = new char[N];
-	char* buf_end = buf + N;
-
-	// get header
-	int col_ids[]{ 0, 1 };
-	int col_distance = 2; // by default use 3rd column as the one with distance 
-	std::vector<ColumnFilter> filters;
-	processHeader(ifs, idColumns, distanceColumn, columns2filters, col_ids, col_distance, filters);
-	int n_columns = filters.size();
-
-	auto is_sep = [](char c) {return c == ',' || c == '\t' || c == '\r' || c == '\t'; };
-	auto is_newline = [](char c) {return c == '\r' || c == '\n'; };
-
-	namesBuffer = new char[1LL << 30]; // 1 GB buffer for names
-	char* raw_ptr = namesBuffer;
-
+	// invoke superclass method
+	GraphSparse<Distance>::initLoad();
+	
 	// assume space for 8M objects
-	matrix.distances.reserve(8LL << 20);
+	ids2names.reserve(8LL << 20);
 
-	bool continueReading = true;
-	char* place = buf;
-
-	while (continueReading) {
-		size_t n_wanted = buf_end - place;
-		ifs.read(place, n_wanted);
-		size_t n_read = ifs.gcount();
-		char* block_end = place + n_read;
-		int offset = 0;
-
-		// no more data
-		if (n_read < n_wanted) {
-			continueReading = false;
-		}
-		else {
-			// find last newline
-			while (!is_newline(*(block_end - 1))) {
-				--block_end;
-				++offset;
-			}
-		}
-
-		//LOG_DEBUG << "portion: " << n_read << ", offset: " << offset << ", carryOn: " << carryOn << endl;
-
-		// pass through buffer
-		char* line = buf;
-		while (true) {
-			char* line_end = std::find_if(line, block_end, is_newline);
-
-			// no more lines
-			if (line_end == block_end) {
-				break;
-			}
-
-			++n_total_distances;
-
-			char* p = line;
-			decltype(names2ids.begin()) its[2];
-			double d = std::numeric_limits<double>::max();
-
-			int k = 0;
-			bool carryOn = true;
-
-			for (int c = 0; c < n_columns; ++c) {
-				char* q = std::find_if(p, line_end, is_sep); // support both tsv and csv files
-				*q = 0;
-
-				if (k < 2 && c == col_ids[k]) {
-					char* name = p;
-
-					// store name in hashtable
-					its[k] = names2ids.find(name);
-
-					if (its[k] == names2ids.end()) {
-
-						char* localName = raw_ptr;
-						while (*raw_ptr++ = *name++) {}
-						auto it_and_flag = names2ids.insert({ localName, {-1, names2ids.size()} }); // -1 indicate singleton
-						its[k] = it_and_flag.first;
-					}
-
-					++k;
-				}
-				else if (c == col_distance || filters[c].enabled) {
-					double value = Conversions::strtod(p, &p);
-
-					if (c == col_distance) {
-						d = transform(value); 	// convert similarity to distance if neccessary
-					}
-
-					// check distance condition
-					if (value < filters[c].min || value > filters[c].max) {
-						carryOn = false;
-						break;
-					}
-				}
-
-				p = q + 1;
-			}
-
-			// move to the next line
-			line = std::find_if(line_end, block_end, [](char c) { return c != '\r' && c != '\n' && c != 0; });
-
-			// do not consider rows not fulfilling conditions
-			if (carryOn == false) {
-				continue;
-			}
-
-			// translate seq names to numerical ids
-			for (int k = 0; k < 2; ++k) {
-				auto it = its[k];
-
-				// if name not mapped to numerical ids
-				if (it->second.first == -1) {
-					ids2names.push_back(it->first);
-					it->second.first = ids2names.size() - 1;
-				}
-			}
-
-			uint32_t i = std::min(its[0]->second.first, its[1]->second.first);
-			uint32_t j = std::max(its[0]->second.first, its[1]->second.first);
-
-			// omit diagonal elements - they are assumed to have 0 distance
-			if (i == j) {
-				continue;
-			}
-
-			if (matrix.distances.size() <= j) {
-				matrix.distances.resize(j + 1);
-			}
-
-			auto& Di = matrix.distances[i];
-			auto& Dj = matrix.distances[j];
-
-			// extend capacity by factor 1.5 with 16 as an initial state
-			if (Di.capacity() == Di.size()) {
-				Di.reserve(Di.capacity() == 0 ? 16 : size_t(Di.capacity() * 1.5));
-			}
-
-			if (Dj.capacity() == Dj.size()) {
-				Dj.reserve(Dj.capacity() == 0 ? 16 : size_t(Dj.capacity() * 1.5));
-			}
-
-			Di.emplace_back(j, d);
-			Dj.emplace_back(i, d);
-		}
-
-		// copy remaining part after consuming all the lines
-		if (continueReading && offset > 0) {
-			memcpy(buf, block_end, offset);
-			place = buf + offset;
-		}
-		else {
-			place = buf;
-		}
-	}
-
-	// if neccessary, sort distances in rows according to the second id	
-	matrix.n_elements = 0;
-
-	for (auto& row : matrix.distances) {
-		std::sort(row.begin(), row.end());
-		auto newEnd = std::unique(row.begin(), row.end(), [](const Distance& a, const Distance& b) { return a.get_id() == b.get_id(); });
-
-		row.erase(newEnd, row.end());
-
-		matrix.n_elements += row.size();
-	}
-
-	delete[] buf;
-
-	return n_total_distances;
+	name_or_id_t ai;
 }
-
 
 
 /*********************************************************************************************************************/
 template <class Distance>
-int GraphNamed<Distance>::saveRepresentatives(
-	std::ofstream& ofs,
-	const std::vector<std::string>& globalNames,
-	const std::vector<int>& assignments,
-	char separator) const
-{
-	int n_clusters = *std::max_element(assignments.begin(), assignments.end()) + 1;
+bool GraphNamed<Distance>::parseBlock(
+	char* block_begin,
+	char* block_end,
+	distance_transformation_t transform,
+	IEdgesCollection& edges,
+	size_t& n_rows) {
 
-	std::vector<std::string> names;
-	if (globalNames.empty()) {
-		names.resize(names2ids.size());
-		std::vector<std::pair<const char*, std::pair<int, int>>> entries(names2ids.size());
-		std::copy(names2ids.begin(), names2ids.end(), entries.begin());
-		std::sort(entries.begin(), entries.end(), [](const auto& a, const auto& b) { return a.second.second < b.second.second; });
+	NamedEdgesCollection& namedEdges = dynamic_cast<NamedEdgesCollection&>(edges);
 
-		std::transform(entries.begin(), entries.end(), names.begin(), [](const auto& entry) { return std::string(entry.first); });
-	}
-	else {
-		names = globalNames;
-	}
+	int n_columns = (int)this->filters.size();
+	n_rows = 0;
+	
+	char* line = block_begin;
 
-	std::unordered_map<std::string, int> names2globalIds;
+	while (line != block_end) {
 
-	for (size_t i = 0; i < names.size(); ++i) {
-		names2globalIds[names[i]] = i;
-	}
+		++n_rows;
 
-	std::vector<int> lowestClusterMembers(n_clusters, std::numeric_limits<int>::max());
+		char* p = line;
+		NamedEdgesCollection::edge_t edge;
+		edge.second = std::numeric_limits<double>::max();
+		bool carryOn = true;
+		int k = 0;
+		bool reachedNewline = false;
 
-	for (size_t i = 0; i < assignments.size(); ++i) {
-		// translate element ids
-		std::string name = ids2names[i];
-		int global_id = names2globalIds[name];
-		int cluster_id = assignments[i];
+		for (int c = 0; c < n_columns; ++c) {
+			char* q = std::find_if(p, block_end, this->isSeparator); // support both tsv and csv files
 
-		if (global_id < lowestClusterMembers[cluster_id]) {
-			lowestClusterMembers[cluster_id] = global_id;
+			reachedNewline = this->isNewline(*q);
+
+			if (q != block_end) {
+				if ((c == n_columns - 1) ^ reachedNewline) {
+					throw std::runtime_error("Ill-formatted input table in row " + std::to_string(n_rows) + "\n" + std::string(line, line + 50));
+				}
+
+				*q = 0;
+			}
+
+			size_t name_len = q - p;
+
+			if (k < 2 && c == this->sequenceColumnIds[k]) {
+				edge.first[k].name = std::string_view(p, name_len);
+				++k;
+			}
+			else if (c == this->distanceColumnId || this->filters[c].enabled) {
+				double value = Conversions::strtod(p, &p);
+
+				if (c == this->distanceColumnId) {
+					edge.second = transform(value); 	// convert similarity to distance if neccessary
+				}
+
+				// check distance condition
+				if (value < this->filters[c].min || value > this->filters[c].max) {
+					p = q + 1;
+					//edge.second = std::numeric_limits<double>::max();
+					carryOn = false;
+					break;
+				}
+			}
+
+			p = q + 1;
 		}
-	}
+		
+		// do not consider diagonal elements (they are assumed to have 0 distance)
+		if (carryOn && (edge.first[0].name != edge.first[1].name)) {
+			namedEdges.data.push_back(edge);
+		}
 
-	std::vector<std::string*> representatives(names.size());
-
-	int n_singletons = 0;
-	for (size_t i = 0; i < names.size(); ++i) {
-
-		int id = get_id(names[i].c_str());
-		if (id == -1) {
-			// not in matrix - own representative
-			representatives[i] = &names[i];
-			++n_singletons;
-			//	LOG_DEBUG << names[i] << endl;
+		// if new line was detected
+		if (reachedNewline || p > block_end) {
+			// decrease p so it points 0 which replaced the newline
+			--p;
 		}
 		else {
-			int cluster_id = assignments[id];
-			int lowest_member = lowestClusterMembers[cluster_id];
-			representatives[i] = &names[lowest_member];
+			// find new line character
+			p = std::find_if(p, block_end, this->isNewline);
 		}
+
+		// p should be at symbol right after newline (but new line can consists of two chars)
+		line = std::find_if(p, block_end, [](char c) { return c != '\r' && c != '\n' && c != 0; });
 	}
 
-	ofs << "object" << separator << "cluster" << std::endl;
-
-	for (size_t i = 0; i < names.size(); ++i) {
-		ofs << names[i] << separator << *representatives[i] << std::endl;
-	}
-
-	return n_clusters + n_singletons;
+	return false; // cannot free input buffer
 }
 
+
+/*********************************************************************************************************************/
+template <class Distance>
+void GraphNamed<Distance>::updateMappings(
+	IEdgesCollection& edges) {
+
+	NamedEdgesCollection& namedEdges{ dynamic_cast<NamedEdgesCollection&>(edges) };
+
+	for (NamedEdgesCollection::edge_t& e : namedEdges.data) {
+
+		decltype(names2ids.begin()) its[2];
+
+		for (int k = 0; k < 2; ++k) {
+			const std::string_view& name = e.first[k].name;
+
+			// store name in hashtable
+			its[k] = names2ids.find(name);
+
+			if (its[k] == names2ids.end()) {
+
+				char* dst = namesBuffer.resize_for_additional(name.size() + 1);
+				std::copy_n(name.data(), name.size(), dst); // 0 is already there						
+				auto it_and_flag = names2ids.insert({ std::string_view(dst, name.size()), {-1, names2ids.size()} }); // -1 indicate singleton
+
+				its[k] = it_and_flag.first;
+			}
+
+			auto it = its[k];
+
+			// if name not mapped to numerical ids
+			if (it->second.first == -1) {
+				ids2names.push_back(it->first);
+				it->second.first = (int)ids2names.size() - 1;
+			}
+		
+			e.first[k].id = it->second.first;
+		}	
+	}
+}
+
+/*********************************************************************************************************************/
+template <class Distance>
+void GraphNamed<Distance>::extendMatrix() {
+	// can be only larger
+	this->matrix.distances.resize(ids2names.size());
+}
+
+/*********************************************************************************************************************/
+template <class Distance>
+void GraphNamed<Distance>::updateMatrix(
+	const IEdgesCollection& edges,
+	int startRow,
+	int stride) {
+
+	const NamedEdgesCollection& namedEdges{ dynamic_cast<const NamedEdgesCollection&>(edges) };
+
+	for (const NamedEdgesCollection::edge_t& e : namedEdges.data) {
+		for (int k = 0; k < 2; ++k) {
+
+			int lid = e.first[k].id;
+			if ((lid % stride) == startRow && e.second < std::numeric_limits<double>::max()) {
+				auto& D = this->matrix.distances[lid];
+
+				// extend capacity by factor 1.5 with 16 as an initial state
+				if (D.capacity() == D.size()) {
+					D.reserve(D.capacity() == 0 ? 16 : size_t(D.capacity() * 1.5));
+				}
+
+				D.emplace_back(e.first[k ^ 1].id, e.second);
+			}
+		}
+	}
+}
 
 
 /*********************************************************************************************************************/
 template <class Distance>
 int GraphNamed<Distance>::saveAssignments(
 	std::ofstream& ofs,
-	const std::vector<std::string>& globalNames,
+	const std::vector<std::string_view>& globalNames,
 	const std::vector<int>& assignments,
-	char separator) const {
+	char separator,
+	bool useRepresentatives) const {
 
-	int n_clusters = *std::max_element(assignments.begin(), assignments.end()) + 1;
+	std::vector<int> old2new;
+	this->sortClustersBySize(assignments, old2new);
 
-	std::vector<std::string> names;
+	int singleton_id = (int)old2new.size();
+	
 	if (globalNames.empty()) {
-		names.resize(names2ids.size());
-		std::vector<std::pair<const char*, std::pair<int, int>>> entries(names2ids.size());
-		std::copy(names2ids.begin(), names2ids.end(), entries.begin());
-		std::sort(entries.begin(), entries.end(), [](const auto& a, const auto& b) { return a.second.second < b.second.second; });
 
-		std::transform(entries.begin(), entries.end(), names.begin(), [](const auto& entry) { return std::string(entry.first); });
-	}
-	else {
-		names = globalNames;
-	}
+		std::vector<std::tuple<std::string_view, int>> names_n_clusters(assignments.size());
 
-	std::vector<int> globalAssignments(names.size());
+		int i = 0;
+		std::transform(assignments.begin(), assignments.end(), names_n_clusters.begin(), [this, &i, &old2new](int a) {
+			return std::make_tuple(this->ids2names[i++], old2new[a]);
+			});
 
-	int singleton_id = n_clusters;
+		std::sort(names_n_clusters.begin(), names_n_clusters.end(), [](const auto& p, const auto& q) {
+			return (std::get<1>(p) == std::get<1>(q)) ? (std::get<0>(p) < std::get<0>(q)) : (std::get<1>(p) < std::get<1>(q));
+			});
 
-	for (size_t i = 0; i < names.size(); ++i) {
+		
+		if (useRepresentatives) {
+			std::vector<std::tuple<std::string_view, std::string_view>> names_n_reps;
+			this->fillRepresentatives(names_n_clusters, names_n_reps);
+			saveTableBuffered<2>(ofs, std::array<std::string, 2>({ "object", "cluster" }), names_n_reps, separator);
 
-		int id = get_id(names[i].c_str());
-		if (id == -1) {
-			// not in matrix 
-			globalAssignments[i] = singleton_id++;
 		}
 		else {
-			globalAssignments[i] = assignments[id];
+			saveTableBuffered<2>(ofs, std::array<std::string, 2>({ "object", "cluster" }), names_n_clusters, separator);
 		}
+
 	}
+	else {
+		
+		std::vector<std::tuple<std::string_view, int, int>> names_n_clusters_n_ids(globalNames.size());
 
-	ofs << "object" << separator << "cluster" << std::endl;
+		int inside_id = 0;
+		int outsize_id = (int)assignments.size();
 
-	for (size_t i = 0; i < names.size(); ++i) {
-		ofs << names[i] << separator << globalAssignments[i] << std::endl;
+		for (int gi = 0; gi < globalNames.size(); ++gi) {
+			auto& name = globalNames[gi];
+
+			int local_id = get_id(name);
+			if (local_id == -1) {
+				// not in matrix
+				if (outsize_id >= names_n_clusters_n_ids.size()) {
+					throw std::runtime_error("Names mismatch between distance and objects files.");
+				}
+
+				auto& out{ names_n_clusters_n_ids[outsize_id++] };
+				std::get<0>(out) = name;
+				std::get<1>(out) = singleton_id++;
+				std::get<2>(out) = gi;
+			}
+			else {
+				auto& out{ names_n_clusters_n_ids[inside_id++] };
+				// in matrix
+				std::get<0>(out) = name;
+				std::get<1>(out) = old2new[assignments[local_id]];
+				std::get<2>(out) = gi;
+			}
+		}
+
+		// sort increasingly inside part by cluster and by object id 
+		std::sort(names_n_clusters_n_ids.begin(), names_n_clusters_n_ids.begin() + inside_id, [](const auto& p, const auto& q) {
+			return (std::get<1>(p) == std::get<1>(q)) ? (std::get<2>(p) < std::get<2>(q)) : (std::get<1>(p) < std::get<1>(q));
+			});
+
+		if (useRepresentatives) {
+			std::vector<std::tuple<std::string_view, std::string_view>> names_n_reps;
+
+			this->fillRepresentatives(names_n_clusters_n_ids, names_n_reps);
+			saveTableBuffered<2>(ofs, std::array<std::string, 2>({ "object", "cluster" }), names_n_reps, separator);
+
+		}
+		else {
+			saveTableBuffered<2>(ofs, std::array<std::string, 2>({ "object", "cluster" }), names_n_clusters_n_ids, separator);
+		}
 	}
 
 	return singleton_id;
@@ -432,21 +377,19 @@ void GraphNamed<Distance>::print(std::ostream& out) const {
 
 	out.precision(10);
 
-	std::vector<const char*> names(names2ids.size());
+	std::vector<std::string_view> names(names2ids.size());
 	int i = 0;
 	for (auto q : names2ids) {
 		names[i] = q.first;
 		++i;
 	}
 
-	std::sort(names.begin(), names.end(), [](const char* a, const char* b) {
-		return strcmp(a, b) < 0;
-		});
+	std::sort(names.begin(), names.end());
 
 	for (auto name : names) {
-
+		
 		int i = names2ids.at(name).first;
-		const std::vector<Distance>& row = matrix.distances[i];
+		const std::vector<Distance>& row = this->matrix.distances[i];
 
 		for (auto& p : row) {
 			out << ids2names[i] << "," << ids2names[p.get_id()] << "," << std::fixed << p.get_d() << std::endl;

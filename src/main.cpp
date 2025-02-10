@@ -2,7 +2,7 @@
 // This file is a part of Clusty software distributed under GNU GPL 3 license.
 // The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
 //
-// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+// Copyright(C) 2024-2025, A.Gudys, K.Siminski, S.Deorowicz
 //
 // *******************************************************************************************
 #include "console.h"
@@ -21,7 +21,7 @@ int main(int argc, char** argv)
 		Params params;
 
 		std::vector<int> objects;
-		std::vector<string> names;
+		std::vector<string_view> names;
 		std::vector<int> assignments;
 
 		if (!console.init(argc, argv, params)) {

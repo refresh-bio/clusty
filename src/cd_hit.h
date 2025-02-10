@@ -4,7 +4,7 @@
 // This file is a part of Clusty software distributed under GNU GPL 3 license.
 // The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
 //
-// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+// Copyright(C) 2024-2025, A.Gudys, K.Siminski, S.Deorowicz
 //
 // *******************************************************************************************
 
@@ -27,7 +27,7 @@ public:
 		double threshold,
 		std::vector<int>& assignments) override {
 
-		int n_objects = objects.size();
+		int n_objects = (int)objects.size();
 
 		assignments.resize(objects.size(), -1);
 

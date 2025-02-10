@@ -53,23 +53,24 @@ jobs:
 
     steps:
     - name: make
-      run: | 
-        gmake -j32 CXX=g++-${{matrix.compiler}} CC=gcc-${{matrix.compiler}} PLATFORM=${{ matrix.platform }} LEIDEN=true STATIC_LINK=true
-        cp ./bin/clusty ./clusty-${{matrix.compiler}}
-        gmake clean
+      run: gmake -j32 CXX=g++-${{matrix.compiler}} CC=gcc-${{matrix.compiler}} PLATFORM=${{ matrix.platform }} LEIDEN=true STATIC_LINK=true
+    - name: copy executable    
+      run: cp ./bin/clusty ./clusty-${{matrix.compiler}}
+    - name: clean  
+      run: gmake clean
+
 
   ########################################################################################                 
-  toy:
-    name: Toy example
+  synth:
+    name: Synthetic example
     needs: make
     strategy:
       fail-fast: false
       matrix:
-        algo: [single]
         machine: [x64_linux, x64_mac, arm64_linux, arm64_mac]
         compiler: [11, 12]
         include:
-        - {algo: single, machine: x64_linux, compiler: 14}
+        - {machine: x64_linux, compiler: 14}
         
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']    
     
@@ -78,16 +79,49 @@ jobs:
       run:  ./clusty-${{matrix.compiler}}
     - name: version
       run:  ./clusty-${{matrix.compiler}} --version
-    - name: ${{matrix.algo}} (no representatives, numeric ids, singletons in object file)
+
+    
+    - name: numeric, w/o representatives, w/o objects
       run: |
-        ./clusty-${{matrix.compiler}} --objects-file ./test/toy.ids.tsv --algo ${{matrix.algo}} --id-cols idx1 idx2 --distance-col tani --similarity --numeric-ids --min tani 0.95 ./test/toy.ani.tsv toy.${{matrix.algo}}.tsv
-        python3 ./test/cmp.py toy.${{matrix.algo}}.tsv ./test/toy.${{matrix.algo}}.tsv
-        
-  ########################################################################################        
-         
+        ./clusty-${{matrix.compiler}} --id-cols id1 id2 --distance-col ani --similarity --min ani 0.70 --numeric-ids ./test/synth/synth.ani numeric.clusty
+        cmp ./test/synth/numeric.clusty numeric.clusty 
+    - name: numeric, w/o representatives, w/ objects
+      run: |
+        ./clusty-${{matrix.compiler}} --id-cols id1 id2 --distance-col ani --similarity --min ani 0.70 --numeric-ids ./test/synth/synth.ani numeric.objs.clusty --objects-file ./test/synth/synth.ids 
+        cmp ./test/synth/numeric.objs.clusty numeric.objs.clusty    
+    - name: numeric, w/ representatives, w/o objects
+      run: |
+        ./clusty-${{matrix.compiler}} --id-cols id1 id2 --distance-col ani --similarity --min ani 0.70 --numeric-ids ./test/synth/synth.ani numeric.reps.clusty  --out-representatives  
+        cmp ./test/synth/numeric.reps.clusty numeric.reps.clusty   
+    - name: numeric, w/ representatives, w/ objects
+      run: |
+        ./clusty-${{matrix.compiler}} --id-cols id1 id2 --distance-col ani --similarity --min ani 0.70 --numeric-ids ./test/synth/synth.ani numeric.objs.reps.clusty  --objects-file ./test/synth/synth.ids --out-representatives  
+        cmp ./test/synth/numeric.objs.reps.clusty numeric.objs.reps.clusty
+
+            
+    - name: named, w/o representatives, w/o objects
+      run: |
+        ./clusty-${{matrix.compiler}} --id-cols name1 name2 --distance-col ani --similarity --min ani 0.70 ./test/synth/synth.ani named.clusty
+        cmp ./test/synth/named.clusty named.clusty    
+    - name: named, w/o representatives, w/ objects
+      run: |
+        ./clusty-${{matrix.compiler}} --id-cols name1 name2 --distance-col ani --similarity --min ani 0.70 ./test/synth/synth.ani named.objs.clusty --objects-file ./test/synth/synth.ids 
+        cmp ./test/synth/named.objs.clusty named.objs.clusty      
+    - name: named, w/ representatives, w/o objects
+      run: |
+        ./clusty-${{matrix.compiler}} --id-cols name1 name2 --distance-col ani --similarity --min ani 0.70 ./test/synth/synth.ani named.reps.clusty  --out-representatives  
+        cmp ./test/synth/named.reps.clusty named.reps.clusty
+    - name: named, w/ representatives, w/ objects
+      run: |
+        ./clusty-${{matrix.compiler}} --id-cols name1 name2 --distance-col ani --similarity --min ani 0.70 ./test/synth/synth.ani named.objs.reps.clusty  --objects-file ./test/synth/synth.ids --out-representatives  
+        cmp ./test/synth/named.objs.reps.clusty named.objs.reps.clusty
+   
+
+  ########################################################################################                 
+     
   vir61-linkage:
     name: Vir61
-    needs: toy
+    needs: synth
     strategy:
       fail-fast: false
       matrix:
@@ -104,14 +138,19 @@ jobs:
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']    
     
     steps:
-    - name: ${{matrix.algo}}, ${{matrix.threshold}} (with representatives, reordered columns)
+    - name: ${{matrix.algo}}, ${{matrix.threshold}} (w/o representatives, reordered columns)
       run: |
-        ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/vir61.list --similarity --min ani 0.${{matrix.threshold}} --id-cols id2 id1 --distance-col ani ./test/vir61.ani vir61.${{matrix.algo}}.${{matrix.threshold}} --out-representatives
-        python3 ./test/cmp.py vir61.${{matrix.algo}}.${{matrix.threshold}} ./test/vir61.${{matrix.algo}}.${{matrix.threshold}}.python.csv
+        ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/vir61/vir61.list --similarity --min ani 0.${{matrix.threshold}} --id-cols id2 id1 --distance-col ani ./test/vir61/vir61.ani vir61.${{matrix.algo}}.${{matrix.threshold}}
+        python3 ./test/cmp.py vir61.${{matrix.algo}}.${{matrix.threshold}} ./test/vir61/vir61.${{matrix.algo}}.${{matrix.threshold}}.python.csv
+    
+    - name: ${{matrix.algo}}, ${{matrix.threshold}} (w/ representatives, reordered columns)
+      run: |
+        ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/vir61/vir61.list --similarity --min ani 0.${{matrix.threshold}} --id-cols id2 id1 --distance-col ani ./test/vir61/vir61.ani vir61.${{matrix.algo}}.${{matrix.threshold}}.reps --out-representatives
+        python3 ./test/cmp.py vir61.${{matrix.algo}}.${{matrix.threshold}}.reps ./test/vir61/vir61.${{matrix.algo}}.${{matrix.threshold}}.python.csv
   
   ########################################################################################   
   ictv-linkage:
-    name: ICTV (single and complete versus python clusterings)
+    name: ICTV python ref
     needs: vir61-linkage
     strategy:
       fail-fast: false
@@ -129,35 +168,36 @@ jobs:
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']    
     
     steps:
-    - name: ${{matrix.algo}}, ${{matrix.threshold}} (no representatives)
+    - name: ${{matrix.algo}}, ${{matrix.threshold}} (w/o representatives)
       run: |
-        ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv.ani ictv.${{matrix.algo}}.${{matrix.threshold}}
-        python3 ./test/cmp.py ictv.${{matrix.algo}}.${{matrix.threshold}} ./test/ictv.${{matrix.algo}}.${{matrix.threshold}}.python.csv
+        ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/ictv/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv/ictv.ani ictv.${{matrix.algo}}.${{matrix.threshold}}
+        python3 ./test/cmp.py ictv.${{matrix.algo}}.${{matrix.threshold}} ./test/ictv/ictv.${{matrix.algo}}.${{matrix.threshold}}.python.csv
         
-    - name: ${{matrix.algo}}, ${{matrix.threshold}} (with representatives)
+    - name: ${{matrix.algo}}, ${{matrix.threshold}} (w/ representatives)
       run: |
-        ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv.ani ictv.${{matrix.algo}}.${{matrix.threshold}}.reps --out-representatives
-        python3 ./test/cmp.py ictv.${{matrix.algo}}.${{matrix.threshold}}.reps ./test/ictv.${{matrix.algo}}.${{matrix.threshold}}.python.csv
+        ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/ictv/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv/ictv.ani ictv.${{matrix.algo}}.${{matrix.threshold}}.reps --out-representatives
+        python3 ./test/cmp.py ictv.${{matrix.algo}}.${{matrix.threshold}}.reps ./test/ictv/ictv.${{matrix.algo}}.${{matrix.threshold}}.python.csv
         
-    - name: ${{matrix.algo}}, ${{matrix.threshold}} (no representatives, numeric ids)
+    - name: ${{matrix.algo}}, ${{matrix.threshold}} (w/o representatives, numeric ids)
       run: |
-        ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv.num ictv.${{matrix.algo}}.${{matrix.threshold}}.num --numeric-ids
-        python3 ./test/cmp.py ictv.${{matrix.algo}}.${{matrix.threshold}}.num ./test/ictv.${{matrix.algo}}.${{matrix.threshold}}.python.csv
+        ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/ictv/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv/ictv.num ictv.${{matrix.algo}}.${{matrix.threshold}}.num --numeric-ids
+        python3 ./test/cmp.py ictv.${{matrix.algo}}.${{matrix.threshold}}.num ./test/ictv/ictv.${{matrix.algo}}.${{matrix.threshold}}.python.csv
         
-    - name: ${{matrix.algo}}, ${{matrix.threshold}} (with representatives, numeric ids)
+    - name: ${{matrix.algo}}, ${{matrix.threshold}} (w/ representatives, numeric ids)
       run: |
-        ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv.num ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num --out-representatives --numeric-ids
-        python3 ./test/cmp.py ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num ./test/ictv.${{matrix.algo}}.${{matrix.threshold}}.python.csv
+        ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/ictv/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv/ictv.num ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num --out-representatives --numeric-ids
+        python3 ./test/cmp.py ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num ./test/ictv/ictv.${{matrix.algo}}.${{matrix.threshold}}.python.csv
   
   ########################################################################################   
   ictv-all:
-    name: ICTV (all algos versus our clusterings)
+    name: ICTV all algos
     needs: ictv-linkage
     strategy:
       fail-fast: false
       matrix:
         algo: [single, complete, uclust, set-cover, cd-hit, leiden]
         threshold: [70]
+        threads: [4, 8, 16]
         machine: [x64_linux, x64_mac, arm64_linux, arm64_mac]
         compiler: [12]
         include:
@@ -171,17 +211,17 @@ jobs:
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']    
     
     steps:
-    - name: ${{matrix.algo}}, ${{matrix.threshold}} (no representatives)
+    - name: ${{matrix.algo}}, ${{matrix.threshold}}, ${{matrix.threads}} threads (no representatives)
       run: |
-        ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv.ani ictv.${{matrix.algo}}.${{matrix.threshold}}
-        cmp ictv.${{matrix.algo}}.${{matrix.threshold}} ./test/ictv.${{matrix.algo}}.${{matrix.threshold}}.csv
+        ./clusty-${{matrix.compiler}} -t ${{matrix.threads}} --algo ${{matrix.algo}} --objects-file ./test/ictv/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv/ictv.ani ictv.${{matrix.algo}}.${{matrix.threshold}}
+        cmp ictv.${{matrix.algo}}.${{matrix.threshold}} ./test/ictv/ictv.${{matrix.algo}}.${{matrix.threshold}}.csv
         
-    - name: ${{matrix.algo}}, ${{matrix.threshold}} (with representatives)
+    - name: ${{matrix.algo}}, ${{matrix.threshold}},  ${{matrix.threads}} threads (with representatives)
       run: |
-        ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv.ani ictv.${{matrix.algo}}.${{matrix.threshold}}.reps --out-representatives
-        cmp ictv.${{matrix.algo}}.${{matrix.threshold}}.reps ./test/ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.csv
+        ./clusty-${{matrix.compiler}} -t ${{matrix.threads}} --algo ${{matrix.algo}} --objects-file ./test/ictv/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv/ictv.ani ictv.${{matrix.algo}}.${{matrix.threshold}}.reps --out-representatives
+        cmp ictv.${{matrix.algo}}.${{matrix.threshold}}.reps ./test/ictv/ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.csv
         
-    - name: ${{matrix.algo}}, ${{matrix.threshold}} (with representatives, numeric ids)
+    - name: ${{matrix.algo}}, ${{matrix.threshold}},  ${{matrix.threads}} threads (with representatives, numeric ids)
       run: |
-        ./clusty-${{matrix.compiler}} --algo ${{matrix.algo}} --objects-file ./test/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv.num ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num --out-representatives --numeric-ids
-        cmp ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num ./test/ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.csv
+        ./clusty-${{matrix.compiler}} -t ${{matrix.threads}} --algo ${{matrix.algo}} --objects-file ./test/ictv/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv/ictv.num ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num --out-representatives --numeric-ids
+        cmp ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num ./test/ictv/ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.csv

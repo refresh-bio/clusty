@@ -172,21 +172,28 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cd_hit.h" />
+    <ClInclude Include="chunked_vector.h" />
     <ClInclude Include="clustering.h" />
     <ClInclude Include="console.h" />
     <ClInclude Include="conversion.h" />
+    <ClInclude Include="graph_sparse.h" />
+    <ClInclude Include="hasher.h" />
     <ClInclude Include="leiden.h" />
     <ClInclude Include="linkage_heaptrix.h" />
     <ClInclude Include="log.h" />
     <ClInclude Include="memory_monotonic.h" />
     <ClInclude Include="distances.h" />
     <ClInclude Include="graph.h" />
+    <ClInclude Include="parallel-queues-common.h" />
+    <ClInclude Include="parallel-queues.h" />
     <ClInclude Include="params.h" />
+    <ClInclude Include="semaphore.h" />
     <ClInclude Include="set_cover.h" />
     <ClInclude Include="single_bfs.h" />
     <ClInclude Include="sparse_matrix.h" />
     <ClInclude Include="graph_named.h" />
     <ClInclude Include="graph_numbered.h" />
+    <ClInclude Include="io.h" />
     <ClInclude Include="uclust.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="version.h" />

@@ -2,7 +2,7 @@
 // This file is a part of Clusty software distributed under GNU GPL 3 license.
 // The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
 //
-// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+// Copyright(C) 2024-2025, A.Gudys, K.Siminski, S.Deorowicz
 //
 // *******************************************************************************************
 
@@ -109,6 +109,8 @@ Params::Status Params::parse(int argc, char** argv) {
 		findOption(args, PARAM_LEIDEN_ITERATIONS, leidenParams.numIterations);
 
 		verbose = findSwitch(args, FLAG_VERBOSE);
+
+		findOption(args, PARAM_NUM_THREADS, numThreads);
 
 		if (args.size() == 2) {
 			distancesFile = args[0];

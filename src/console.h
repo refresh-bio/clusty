@@ -2,7 +2,7 @@
 // This file is a part of Clusty software distributed under GNU GPL 3 license.
 // The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
 //
-// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+// Copyright(C) 2024-2025, A.Gudys, K.Siminski, S.Deorowicz
 //
 // *******************************************************************************************
 #pragma once
@@ -15,6 +15,7 @@
 #include "single_bfs.h"
 #include "cd_hit.h"
 #include "leiden.h"
+#include "chunked_vector.h"
 
 #include <memory>
 #include <vector>
@@ -22,6 +23,8 @@
 
 class Console {
 	Params params;
+
+	chunked_vector<char> namesBuffer{ 16LL << 20 }; // 16MB chunk size
 
 public:		
 	bool init(int argc, char** argv, Params& params);
@@ -32,7 +35,7 @@ public:
 		const Params& params,
 		const Graph& graph,
 		std::vector<int>& objects,
-		std::vector<std::string>& names);
+		std::vector<std::string_view>& names);
 
 	void doClustering(
 		const Params& params,
@@ -43,7 +46,7 @@ public:
 	void saveAssignments(
 		const Params& params,
 		const Graph& graph,
-		const std::vector<std::string>& names,
+		const std::vector<std::string_view>& names,
 		const std::vector<int>& assignments);
 
 protected:

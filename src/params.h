@@ -2,7 +2,7 @@
 // This file is a part of Clusty software distributed under GNU GPL 3 license.
 // The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
 //
-// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+// Copyright(C) 2024-2025, A.Gudys, K.Siminski, S.Deorowicz
 //
 // *******************************************************************************************
 #pragma once
@@ -53,6 +53,8 @@ class Params {
 
 	const std::string FLAG_VERBOSE{ "-v" };
 	const std::string FLAG_VERSION{ "--version" };
+
+	const std::string PARAM_NUM_THREADS{ "-t" };
 
 public:
 	enum Status {
@@ -107,6 +109,8 @@ public:
 	LeidenParams leidenParams;
 
 	bool verbose{ false };
+
+	int numThreads{ 4 };
 
 	void printUsage() const;
 	Status parse(int argc, char** argv);

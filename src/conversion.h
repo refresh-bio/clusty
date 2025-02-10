@@ -4,7 +4,7 @@
 // This file is a part of Clusty software distributed under GNU GPL 3 license.
 // The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
 //
-// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+// Copyright(C) 2024-2025, A.Gudys, K.Siminski, S.Deorowicz
 //
 // *******************************************************************************************
 
@@ -135,7 +135,7 @@ public:
 
 	static int String2PChar(const std::string& src, char* dst) {
 		memcpy(dst, src.c_str(), src.size());
-		return src.size();
+		return (int)src.size();
 	}
 
 

@@ -40,5 +40,12 @@
     <ClInclude Include="sparse_matrix.h" />
     <ClInclude Include="graph.h" />
     <ClInclude Include="params.h" />
+    <ClInclude Include="hasher.h" />
+    <ClInclude Include="io.h" />
+    <ClInclude Include="chunked_vector.h" />
+    <ClInclude Include="parallel-queues.h" />
+    <ClInclude Include="parallel-queues-common.h" />
+    <ClInclude Include="graph_sparse.h" />
+    <ClInclude Include="semaphore.h" />
   </ItemGroup>
 </Project>

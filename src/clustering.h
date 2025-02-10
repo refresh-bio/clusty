@@ -4,7 +4,7 @@
 // This file is a part of Clusty software distributed under GNU GPL 3 license.
 // The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
 //
-// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+// Copyright(C) 2024-2025, A.Gudys, K.Siminski, S.Deorowicz
 //
 // *******************************************************************************************
 
@@ -75,7 +75,7 @@ protected:
 		double threshold,
 		std::vector<int>& assignments) {
 
-		int n_objects = assignments.size();
+		int n_objects = (int)assignments.size();
 
 		std::vector<int> prevs(dendrogram.size() + 1, -1);
 		std::vector<int> num_visits(dendrogram.size() + 1, 0);
@@ -83,7 +83,7 @@ protected:
 		int cluster_id = 0;
 		
 		// dendrogram can have multiple isolated roots - iterate over positions from the last one
-		for (int last_pos = dendrogram.size() - 1; last_pos >= 0; --last_pos) {
+		for (int last_pos = (int)dendrogram.size() - 1; last_pos >= 0; --last_pos) {
 
 			// visited nodes are inner roots - omit them
 			if (num_visits[last_pos] > 0) {

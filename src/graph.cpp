@@ -2,12 +2,13 @@
 // This file is a part of Clusty software distributed under GNU GPL 3 license.
 // The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
 //
-// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+// Copyright(C) 2024-2025, A.Gudys, K.Siminski, S.Deorowicz
 //
 // *******************************************************************************************
 
 #include "graph.h"
 #include "log.h"
+#include "io.h"
 
 #include <iostream>
 #include <limits>
@@ -18,14 +19,36 @@
 using namespace std;
 
 /*********************************************************************************************************************/
+void Graph::sortClustersBySize(
+	const std::vector<int>& assignments,
+	std::vector<int>& old2new) const {
+
+	// get number of clusters
+	int n_clusters = *std::max_element(assignments.begin(), assignments.end()) + 1;
+	
+	// calculate cluster sizes
+	std::vector<std::pair<int, int>> clusters_n_sizes(n_clusters);
+	int i = 0;
+	std::generate(clusters_n_sizes.begin(), clusters_n_sizes.end(), [&i]() { return std::make_pair(i++, 0); });
+	for (auto a : assignments) {
+		++clusters_n_sizes[a].second;
+	}
+
+	// sort clusters decreasingly by size and establish mapping between cluster ids
+	std::stable_sort(clusters_n_sizes.begin(), clusters_n_sizes.end(), [](const auto& p, const auto& q) { return p.second > q.second; });
+	old2new.resize(n_clusters);
+	for (int i = 0; i < n_clusters; ++i) {
+		old2new[clusters_n_sizes[i].first] = i;
+	}
+
+}
+
+/*********************************************************************************************************************/
 void Graph::processHeader(
 	std::ifstream& ifs,
 	const std::pair<std::string, std::string>& idColumns,
 	const std::string& distanceColumn,
-	const std::map<std::string, ColumnFilter>& columns2filters,
-	int idColumnsOut[2],
-	int& distanceColumnOut,
-	std::vector<ColumnFilter>& filters) {
+	const std::map<std::string, ColumnFilter>& columns2filters) {
 
 	std::string line;
 	std::getline(ifs, line);
@@ -65,19 +88,19 @@ void Graph::processHeader(
 		}
 	}
 
-	filters.resize(columns.size());
+	this->filters.resize(columns.size());
 
 	for (const auto& f : columns2filters) {
 		int col = std::find(columns.begin(), columns.end(), f.first) - columns.begin();
 		if (col == n_columns) {
 			throw std::runtime_error("Error loading distances: " + f.first + " column not found");
 		}
-		filters[col] = f.second;
-		filters[col].enabled = true;
+		this->filters[col] = f.second;
+		this->filters[col].enabled = true;
 	}
 
-	idColumnsOut[0] = col_ids[0];
-	idColumnsOut[1] = col_ids[1];
-	distanceColumnOut = col_distance;
+	this->distanceColumnId = col_distance;
+	this->sequenceColumnIds[0] = col_ids[0];
+	this->sequenceColumnIds[1] = col_ids[1];
 }
 

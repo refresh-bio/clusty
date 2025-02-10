@@ -15,7 +15,7 @@ $(call SET_SRC_OBJ_BIN,src,obj,bin)
 $(call ADD_MIMALLOC, $(3RD_PARTY_DIR)/mimalloc)
 #$(call ADD_REFRESH_LIB, $(3RD_PARTY_DIR))
 $(call SET_STATIC, $(STATIC_LINK))
-$(call SET_C_CPP_STANDARDS, c11, c++17)
+$(call SET_C_CPP_STANDARDS, c11, c++20)
 $(call SET_GIT_COMMIT)
 
 ifeq ($(LEIDEN),true) 

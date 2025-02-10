@@ -4,15 +4,20 @@
 // This file is a part of Clusty software distributed under GNU GPL 3 license.
 // The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
 //
-// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+// Copyright(C) 2024-2025, A.Gudys, K.Siminski, S.Deorowicz
 //
 // *******************************************************************************************
 
-#define VERSION		"1.1.5"
-#define DATE		"2024-11-21"
+#define VERSION		"1.2.0"
+#define DATE		"2025-02-10"
 
 
 /********* Version history *********
+
+1.2.0 (2025-02-10)
+* Different ordering of assignments in the output file (clusters decreasingly by size, elements within clusters decreasingly by representativeness).
+* Improved I/O performance.
+* Added support of multithreading at some stages (-t option).
 
 1.1.5 (2024-11-21)
 * New makefile.

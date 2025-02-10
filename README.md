@@ -101,68 +101,159 @@ Options:
 * `--numeric-ids` - use when sequences in the distances file are represented by numbers (can be mapped to string ids by the object file)
 * `--out-representatives` - output representative objects for each cluster instead of cluster numerical identifiers
 * `--out-csv` -- output a CSV table instead of a default TSV
+* `-t` - number of threads (default: 4) 
+
+Leiden algorithm options:
 
 * `--leiden-resolution` - resolution parameter for Leiden algorithm (default: 0.7)
 * `--leiden-beta` - beta parameter for Leiden algorithm (default: 0.01)
 * `--leiden-iterations` - number of interations for Leiden algorithm (default: 2)
 
+## Examples
 
+### Basic use case
 The minimum input requirement is a TSV/CSV table with pairwise distances between objects (or similarities, if `--use-similarity` flag is used). By default, identifiers are assumed to be in the two first columns while distances are expected in the third one. Lack of a distance for a given pair of objects is translated to infinite distance. The example input table is given below:
 ```
-id1,id2,distance
-a,b,0.04
-a,f,0.25
-a,c,0.02
-d,b,0.70
-b,c,0.51
-e,f,0.01
+name1	name2	ani
+xxx	xx	0.93
+aaa	aa	0.94
+aaa	a	0.92
+xx	x	0.94
+bb	b	0.71
+aa	a	0.89
+b	bb	0.99
 ``` 
 
-If the table is organized differenty, one can specify columns with ids and distances by using `--id-cols` and `--distance-col` parameters. The algorithm produces as a result a TSV table (or CSV if `--out-csv` flag is specified) with object identifiers followed by 0-based numerical identifiers of clusters. The objects appear in the order as in the distance table.
+If the table is organized differenty, one can specify columns with ids and distances by using `--id-cols` and `--distance-col` parameters. The algorithm produces as a result a TSV table (or CSV if `--out-csv` flag is specified) with object identifiers followed by 0-based numerical identifiers of clusters. The clusters are ordered decreasingly by size with objects within a cluster outputed with decreasing representativeness (by default: in a lexigraphical order).
 ```
 object	cluster
-a	0
-b	0
-f	1
-c	0
-d	2
-e	1
+x	0
+xx	0
+xxx	0
+a	1
+aa	1
+aaa	1
+b	2
+bb	2
 ```
 
-Alternatively, instead of numerical identifiers, package can output a representative object for every cluster using `--out-representatives` flag. The representative of a cluster is the first object on the list that was assigned to the cluster:
+### Cluster representatives
+Instead of numerical identifiers, the package can output a representative object for every cluster using `--out-representatives` flag. The representative is the first object on the list that was assigned to the cluster:
 ```
 object	cluster
+x	x
+xx	x
+xxx	x
 a	a
-b	a
-f	f
-c	a
-d	d
-e	f
+aa	a
+aaa	a
+b	b
+bb	b
 ```
-
-An optional TSV/CSV file specified by `--objects-file` parameter contains a complete list of analyzed objects. This file can be useful when distance table does not contain all the object (e.g., due to some filtering). Additionally, this file determines order in which objects appear in ouput table (thus, it also affects cluster representatives when using `--out-representatives` flag). For instance, if one specifies following objects file:
+### Objects file
+An optional TSV/CSV file specified by `--objects-file` parameter contains a complete list of analyzed objects. This file can be useful when distance table does not contain all the object (e.g., due to some filtering). Additionally, this file overrides representativeness of object in the ouput table. Thus, it affects ordering of objects within a cluster and their representative when `--out-representatives` flag is used. For instance, if one specifies the following objects file:
 ```
-objects
-b
-x
+object
+aaa
+aa
 a
+bb
+b
 c
-e
 d
+e
 f
+g
+xxx
+xx
+x
 ```
 
 the following output will be produced:
 ```
 object	cluster
-b	b
-x	x
-a	b
-c	b
-e	e
-d	d
-f	e
+aaa	0
+aa	0
+a	0
+xxx	1
+xx	1
+x	1
+bb	2
+b	2
+c	3
+d	4
+e	5
+f	6
+g	7
 ```
+
+or with `--out-representatives` flag:
+
+```
+object	cluster
+aaa	aaa
+aa	aaa
+a	aaa
+xxx	xxx
+xx	xxx
+x	xxx
+bb	bb
+b	bb
+c	c
+d	d
+e	e
+f	f
+g	g
+
+```
+
+### Numerical identifiers
+
+Clusty also supports numerical identifiers (`--numeric-ids` flag), e.g., as in table below. Note: the identifiers are assumed to be ordinal numbers (they do not have to be continous, though - gaps are allowed) rather than numerical hashes. This is because the software allocates memory area proportional to the size of the largest identifier.  
+```
+id1	id2	ani
+10	11	0.93
+0	1	0.94
+0	2	0.92
+11	12	0.94
+3	4	0.71
+1	2	0.89
+4	3	0.99
+5	6	0.33
+```
+
+The clustering produces the following output (lowest object id translates to the highest representativeness):
+```
+object	cluster
+10	0
+11	0
+12	0
+0	1
+1	1
+2	1
+3	2
+4	2
+```
+
+An external object file can also be used in this mode. It assumes, that the numerical identifier in the distance table translates to the 0-based index in the object file. The previously mentioned object file combined with `--out-representatives` flag produces the same table as the one generated without `--numeric-ids` switch:
+
+```
+object	cluster
+aaa	aaa
+aa	aaa
+a	aaa
+xxx	xxx
+xx	xxx
+x	xxx
+bb	bb
+b	bb
+c	c
+d	d
+e	e
+f	f
+g	g
+```
+
 ## Algorithms
 
 In the following section one can find detailed information on clustering algorithms in Clusty, with *n* representing the number of objects (vertices) and *e* the number of distances (edges) in the data set (graph).

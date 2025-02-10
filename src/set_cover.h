@@ -4,7 +4,7 @@
 // This file is a part of Clusty software distributed under GNU GPL 3 license.
 // The homepage of the Clusty project is https://github.com/refresh-bio/Clusty
 //
-// Copyright(C) 2024-2024, A.Gudys, K.Siminski, S.Deorowicz
+// Copyright(C) 2024-2025, A.Gudys, K.Siminski, S.Deorowicz
 //
 // *******************************************************************************************
 
@@ -37,7 +37,7 @@ public:
 		for (int i = 0; i < nObjects; ++i) {
 			int obj = objects[i];
 			obj2connections[i].first = obj;
-			obj2connections[i].second = distances.num_neighbours(obj);
+			obj2connections[i].second = (int)distances.num_neighbours(obj);
 		}
 
 		std::stable_sort(obj2connections.begin(), obj2connections.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
