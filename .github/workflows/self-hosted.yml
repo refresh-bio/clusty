@@ -52,6 +52,8 @@ jobs:
     runs-on: [self-hosted, clusty, '${{ matrix.machine }}']
 
     steps:
+    - name: list files
+      run: ls -lR
     - name: make
       run: gmake -j32 CXX=g++-${{matrix.compiler}} CC=gcc-${{matrix.compiler}} PLATFORM=${{ matrix.platform }} LEIDEN=true STATIC_LINK=true
     - name: copy executable    

@@ -23,6 +23,10 @@ void Graph::sortClustersBySize(
 	const std::vector<int>& assignments,
 	std::vector<int>& old2new) const {
 
+	if (assignments.empty()) {
+		return;
+	}
+
 	// get number of clusters
 	int n_clusters = *std::max_element(assignments.begin(), assignments.end()) + 1;
 	

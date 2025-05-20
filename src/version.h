@@ -8,11 +8,14 @@
 //
 // *******************************************************************************************
 
-#define VERSION		"1.2.0"
-#define DATE		"2025-02-10"
+#define VERSION		"1.2.1"
+#define DATE		"2025-05-19"
 
 
 /********* Version history *********
+
+1.2.1 (2025-05-19)
+Fixed segmentation fault with objects file present and no edges in a filtered graph.
 
 1.2.0 (2025-02-10)
 * Different ordering of assignments in the output file (clusters decreasingly by size, elements within clusters decreasingly by representativeness).
