@@ -31,7 +31,9 @@ int main(int argc, char** argv)
 		std::unique_ptr<Graph> graph = console.loadGraph(params);
 
 		console.loadObjects(params, *graph, objects, names);
-		console.doClustering(params, *graph, objects, assignments);
+		if (graph->getNumEdges() > 0) {
+			console.doClustering(params, *graph, objects, assignments);
+		}
 		console.saveAssignments(params, *graph, names, assignments);
 
    }

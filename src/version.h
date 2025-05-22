@@ -8,11 +8,14 @@
 //
 // *******************************************************************************************
 
-#define VERSION		"1.2.1"
-#define DATE		"2025-05-19"
+#define VERSION		"1.2.2"
+#define DATE		"2025-05-22"
 
 
 /********* Version history *********
+
+1.2.2 (2025-05-22)
+Previous bugfix working also for complete and uclust algorithms. 
 
 1.2.1 (2025-05-19)
 Fixed segmentation fault with objects file present and no edges in a filtered graph.
