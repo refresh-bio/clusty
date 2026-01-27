@@ -210,12 +210,12 @@ jobs:
         - {algo: cd-hit, algo_cmd: cd-hit}
         - {algo: leiden, algo_cmd: 'leiden --leiden-resolution 0.35'}
         
-        - {algo: single, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: single}
-        - {algo: complete, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: complete}
-        - {algo: uclust, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: uclust}
-        - {algo: set-cover, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: set-cover}
-        - {algo: cd-hit, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: cd-hit}
-        - {algo: leiden, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: leiden}
+        - {algo: single, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: single, threads: 4}
+        - {algo: complete, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: complete, threads: 4}
+        - {algo: uclust, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: uclust, threads: 4}
+        - {algo: set-cover, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: set-cover, threads: 4}
+        - {algo: cd-hit, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: cd-hit, threads: 4}
+        - {algo: leiden, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: 'leiden --leiden-resolution 0.35', threads: 4}
         
       
 
