@@ -80,7 +80,7 @@ jobs:
       fail-fast: false
       matrix:
         dataset: [ICTV, IMGVR]
-        algo_name: [single, complete, set-cover, uclust, cd-hit, leiden_07, leiden_10]
+        algo_name: [single, complete, set-cover, uclust, cd-hit, leiden_035, leiden_050]
         include:
         - {dataset: ICTV, variant_name: full, args: '--numeric-ids --similarity --distance-col tani --min tani 0.95'}
         - {dataset: IMGVR, variant_name: fraction_02, args: '--numeric-ids --similarity --distance-col ani --min ani 0.95 --min qcov 0.85'}
@@ -90,8 +90,8 @@ jobs:
         - {algo_name: set-cover, algo_cmd: set-cover}
         - {algo_name: uclust, algo_cmd: uclust}
         - {algo_name: cd-hit, algo_cmd: cd-hit}
-        - {algo_name: leiden_07, algo_cmd: 'leiden --leiden-resolution 0.7'}
-        - {algo_name: leiden_10, algo_cmd: 'leiden --leiden-resolution 1.0'}
+        - {algo_name: leiden_035, algo_cmd: 'leiden --leiden-resolution 0.35'}
+        - {algo_name: leiden_050, algo_cmd: 'leiden --leiden-resolution 0.5'}
      
     env:
       INPUT_DIR: ../../../../clusty/input
@@ -105,8 +105,8 @@ jobs:
       run: /usr/bin/time -v ./bin/clusty ${INPUT_DIR}/${{ matrix.dataset }}.${{ matrix.variant_name }}.ani.tsv --objects-file ${INPUT_DIR}/${{ matrix.dataset }}.${{ matrix.variant_name }}.ani.ids.tsv ${TEMP_DIR}/${{ matrix.dataset }}.${{ matrix.variant_name }}.${{ matrix.algo_name }}.clusty --algo ${{ matrix.algo_cmd }} ${{ matrix.args }}
     - name: md5
       run: md5sum ${TEMP_DIR}/${{ matrix.dataset }}.${{ matrix.variant_name }}.${{ matrix.algo_name }}.clusty
- #   - name: python compare
- #     run: python3 ./test/cmp.py ${TEMP_DIR}/${{ matrix.dataset }}.${{ matrix.variant_name }}.${{ matrix.algo_name }}.clusty ${REF_DIR}/${{ matrix.dataset }}.${{ matrix.variant_name }}.${{ matrix.algo_name }}.clusty 
+    - name: python compare
+      run: python3 ./test/cmp.py ${TEMP_DIR}/${{ matrix.dataset }}.${{ matrix.variant_name }}.${{ matrix.algo_name }}.clusty ${REF_DIR}/${{ matrix.dataset }}.${{ matrix.variant_name }}.${{ matrix.algo_name }}.clusty 
     - name: binary compare
       run: cmp ${TEMP_DIR}/${{ matrix.dataset }}.${{ matrix.variant_name }}.${{ matrix.algo_name }}.clusty ${REF_DIR}/${{ matrix.dataset }}.${{ matrix.variant_name }}.${{ matrix.algo_name }}.clusty
 

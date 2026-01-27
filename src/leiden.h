@@ -91,22 +91,15 @@ public:
 
 		for (int i = 0; i < matrix.num_objects(); ++i) {
 			for (const Distance* edge = matrix.begin(i); edge < matrix.end(i); ++edge) {
-				igraph_vector_int_push_back(&edges, i);
-				igraph_vector_int_push_back(&edges, edge->get_id());
-				igraph_vector_push_back(&edge_weights, 1.0 - edge->get_d());
+				if (i < edge->get_id()) {
+					igraph_vector_int_push_back(&edges, i);
+					igraph_vector_int_push_back(&edges, edge->get_id());
+					igraph_vector_push_back(&edge_weights, 1.0 - edge->get_d());
+				}
 			}
 
 			matrix.clear_row(i);
 		}
-
-		/*
-		for (const dist_t& edge : matrix.get_distances()) {
-			igraph_vector_int_push_back(&edges, edge.u.s.lo);
-			igraph_vector_int_push_back(&edges, edge.u.s.hi);
-			igraph_vector_push_back(&edge_weights, 1.0 - edge.d); 
-			//igraph_vector_push_back(&edge_weights, 1);
-		}
-		*/
 
 		igraph_empty(&g, matrix.num_objects(), IGRAPH_UNDIRECTED);
 		igraph_add_edges(&g, &edges, nullptr);

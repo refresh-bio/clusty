@@ -15,6 +15,11 @@
 
 Clusty is a tool for large-scale clustering. By using sparse distance matrices it allows clustering data sets with millions of objects. 
 
+## Major changes
+- v1.3.0: Updated the Leiden graph construction, which affects cluster granularity. The previous bidirectional approach (IMG/VR-based; Camargo et al., 2023), where each connection contributed twice to the graph construction, was replaced with a single edge per connection. As a result, clustering at the same resolution value is finer than in earlier versions. To reproduce results from versions prior to v1.3.0, divide the value of `--leiden-resolution` by 2. 
+- v1.2.0: Different ordering of assignments in the output file (clusters decreasingly by size, elements within clusters decreasingly by representativeness). Improved I/O performance.
+- v1.1.0: Large memory optimizations. 
+
 ## Quick start
 
 ```bash
@@ -105,8 +110,8 @@ Options:
 
 Leiden algorithm options:
 
-* `--leiden-resolution` - resolution parameter for Leiden algorithm (default: 0.7)
-* `--leiden-beta` - beta parameter for Leiden algorithm (default: 0.01)
+* `--leiden-resolution` - *resolution* parameter controlling clustering granularity in the Leiden algorithm (default: 0.7). Starting with v1.3.0, the underlying graph uses single edges instead of bidirectional connections. As a result, clustering at the same resolution value is coarser than in earlier versions. To reproduce results from versions prior to v1.3.0, use half of the resolution value previously applied.
+* `--leiden-beta` - *beta* parameter for Leiden algorithm (default: 0.01)
 * `--leiden-iterations` - number of interations for Leiden algorithm (default: 2)
 
 ## Examples

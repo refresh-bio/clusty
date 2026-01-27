@@ -8,11 +8,19 @@
 //
 // *******************************************************************************************
 
-#define VERSION		"1.2.2"
-#define DATE		"2025-05-22"
+#define VERSION		"1.3.0"
+#define DATE		"2025-12-29"
 
 
 /********* Version history *********
+
+1.3.0 (2025-12-29)
+Updated the Leiden graph construction, which affects cluster granularity. 
+The previous bidirectional approach (IMG/VR-based; Camargo et al., 2023), 
+where each connection contributed twice to the graph construction, 
+was replaced with a single edge per connection. As a result, clustering 
+at the same resolution value is finer than in earlier versions. 
+To reproduce results from versions prior to v1.3.0, divide the value of --leiden-resolution by 2.
 
 1.2.2 (2025-05-22)
 Previous bugfix working also for complete and uclust algorithms. 

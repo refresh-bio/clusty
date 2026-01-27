@@ -203,27 +203,38 @@ jobs:
         machine: [x64_linux, x64_mac, arm64_linux, arm64_mac]
         compiler: [12]
         include:
-        - {algo: single, threshold: 70, machine: x64_linux, compiler: 14}
-        - {algo: complete, threshold: 70, machine: x64_linux, compiler: 14}
-        - {algo: uclust, threshold: 70, machine: x64_linux, compiler: 14}
-        - {algo: set-cover, threshold: 70, machine: x64_linux, compiler: 14}
-        - {algo: cd-hit, threshold: 70, machine: x64_linux, compiler: 14}
-        - {algo: leiden, threshold: 70, machine: x64_linux, compiler: 14}
+        - {algo: single, algo_cmd: single}
+        - {algo: complete, algo_cmd: complete}
+        - {algo: set-cover, algo_cmd: set-cover}
+        - {algo: uclust, algo_cmd: uclust}
+        - {algo: cd-hit, algo_cmd: cd-hit}
+        - {algo: leiden, algo_cmd: 'leiden --leiden-resolution 0.35'}
+        
+        - {algo: single, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: single}
+        - {algo: complete, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: complete}
+        - {algo: uclust, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: uclust}
+        - {algo: set-cover, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: set-cover}
+        - {algo: cd-hit, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: cd-hit}
+        - {algo: leiden, threshold: 70, machine: x64_linux, compiler: 14, algo_cmd: leiden}
+        
+      
 
-    runs-on: [self-hosted, clusty, '${{ matrix.machine }}']    
+    runs-on: [self-hosted, clusty, '${{ matrix.machine }}']
+    env:
+      ARGS: ${{ matrix.algo == 'leiden' && '--leiden-resolution 0.35' || '' }}
     
     steps:
     - name: ${{matrix.algo}}, ${{matrix.threshold}}, ${{matrix.threads}} threads (no representatives)
       run: |
-        ./clusty-${{matrix.compiler}} -t ${{matrix.threads}} --algo ${{matrix.algo}} --objects-file ./test/ictv/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv/ictv.ani ictv.${{matrix.algo}}.${{matrix.threshold}}
+        ./clusty-${{matrix.compiler}} -t ${{matrix.threads}} --algo ${{matrix.algo_cmd}} --objects-file ./test/ictv/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv/ictv.ani ictv.${{matrix.algo}}.${{matrix.threshold}}
         cmp ictv.${{matrix.algo}}.${{matrix.threshold}} ./test/ictv/ictv.${{matrix.algo}}.${{matrix.threshold}}.csv
         
     - name: ${{matrix.algo}}, ${{matrix.threshold}},  ${{matrix.threads}} threads (with representatives)
       run: |
-        ./clusty-${{matrix.compiler}} -t ${{matrix.threads}} --algo ${{matrix.algo}} --objects-file ./test/ictv/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv/ictv.ani ictv.${{matrix.algo}}.${{matrix.threshold}}.reps --out-representatives
+        ./clusty-${{matrix.compiler}} -t ${{matrix.threads}} --algo ${{matrix.algo_cmd}} --objects-file ./test/ictv/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv/ictv.ani ictv.${{matrix.algo}}.${{matrix.threshold}}.reps --out-representatives
         cmp ictv.${{matrix.algo}}.${{matrix.threshold}}.reps ./test/ictv/ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.csv
         
     - name: ${{matrix.algo}}, ${{matrix.threshold}},  ${{matrix.threads}} threads (with representatives, numeric ids)
       run: |
-        ./clusty-${{matrix.compiler}} -t ${{matrix.threads}} --algo ${{matrix.algo}} --objects-file ./test/ictv/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv/ictv.num ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num --out-representatives --numeric-ids
+        ./clusty-${{matrix.compiler}} -t ${{matrix.threads}} --algo ${{matrix.algo_cmd}} --objects-file ./test/ictv/ictv.list --similarity --min ani 0.${{matrix.threshold}} ./test/ictv/ictv.num ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num --out-representatives --numeric-ids
         cmp ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.num ./test/ictv/ictv.${{matrix.algo}}.${{matrix.threshold}}.reps.csv
