@@ -39,7 +39,7 @@ public:
 	void reorderObjects(
 		const std::vector<std::string_view>& externalNames,
 		std::vector<int>& objects) const override {
-	
+
 		int obj_id = 0;
 		for (int i = 0; i < (int)externalNames.size(); ++i) {
 			int local_id = get_local_id(i);
@@ -103,7 +103,7 @@ void GraphNumbered<Distance>::initLoad() {
 
 	// invoke superclass method
 	GraphSparse<Distance>::initLoad();
-	
+
 	// assume space for 8M objects
 	global2local.reserve(8LL << 20);
 	local2global.reserve(8LL << 20);
@@ -117,24 +117,24 @@ bool GraphNumbered<Distance>::parseBlock(
 	distance_transformation_t transform,
 	IEdgesCollection& edges,
 	size_t& n_rows) {
-	
+
 	auto& numEdgesCol{ dynamic_cast<NumberedEdgesCollection&>(edges) };
 	auto& v_edges { numEdgesCol.data };
-	
+
 	int n_columns = (int)this->filters.size();
 	n_rows = 0;
 
 	char* line = block_begin;
-	
+
 	int max_value = 0;
 
 	while (line != block_end) {
-		
+
 		++n_rows;
 
 		char* p = line;
 		int k = 0;
-		
+
 		NumberedEdgesCollection::edge_t edge;
 		edge.second = std::numeric_limits<double>::max();
 		bool carryOn = true;
@@ -142,7 +142,7 @@ bool GraphNumbered<Distance>::parseBlock(
 
 		for (int c = 0; c < n_columns; ++c) {
 			char* q = std::find_if(p, block_end, this->isSeparator); // support both tsv and csv files
-		
+
 			reachedNewline = this->isNewline(*q);
 
 			if (q != block_end) {
@@ -175,8 +175,9 @@ bool GraphNumbered<Distance>::parseBlock(
 			p = q + 1;
 		}
 
-		// do not consider rows diagonal elements (they are assumed to have 0 distance)
-		if (carryOn && (edge.first[0] != edge.first[1])) {
+		// Push edge if it passed filters (self-loops will be filtered in updateMatrix,
+		// but we need to push them here to register the node ids)
+		if (carryOn) {
 
 			v_edges.push_back(edge);
 
@@ -185,25 +186,25 @@ bool GraphNumbered<Distance>::parseBlock(
 			}
 
 			if (edge.first[1] > max_value) {
-				max_value = edge.first[1];			
+				max_value = edge.first[1];
 			}
 		}
 
 		// if new line was detected or end of block reached
 		if (reachedNewline || p > block_end) {
 			// decrease p so it points 0 which replaced the newline
-			--p;	
+			--p;
 		}
 		else {
 			// find new line character
 			p = std::find_if(p, block_end, this->isNewline);
 		}
-		
+
 		// p should be at symbol right after newline (but new line can consists of two chars)
 		line = std::find_if(p, block_end, [](char c) { return c != '\r' && c != '\n' && c != 0; });
 	}
 
-	// make the largest id at index 1 of the front element 
+	// make the largest id at index 1 of the front element
 	numEdgesCol.maxEdge = max_value;
 
 	return true;
@@ -224,7 +225,7 @@ void GraphNumbered<Distance>::updateMappings(
 
 	// update mappings in collection
 	for (NumberedEdgesCollection::edge_t& e : numberedEdges.data) {
-		
+
 		for (int k = 0; k < 2; ++k) {
 
 			int gid = e.first[k];
@@ -240,7 +241,7 @@ void GraphNumbered<Distance>::updateMappings(
 		}
 	}
 
-	
+
 }
 
 
@@ -262,13 +263,17 @@ void GraphNumbered<Distance>::updateMatrix(
 	const NumberedEdgesCollection& numberedEdges{ dynamic_cast<const NumberedEdgesCollection&>(edges) };
 
 	for (const NumberedEdgesCollection::edge_t& e : numberedEdges.data) {
+		// Skip self-loops (diagonal elements)
+		if (e.first[0] == e.first[1]) {
+			continue;
+		}
 
 		for (int k = 0; k < 2; ++k) {
 			int lid = e.first[k];
 
 			if ((lid % stride) == startRow && e.second < std::numeric_limits<double>::max()) {
 				auto& D = this->matrix.distances[lid];
-				
+
 				// extend capacity by factor 1.5 with 16 as an initial state
 				if (D.capacity() == D.size()) {
 					D.reserve(D.capacity() == 0 ? 16 : size_t(D.capacity() * 1.5));
@@ -303,7 +308,7 @@ int GraphNumbered<Distance>::saveAssignments(
 			return std::make_tuple(this->local2global[i++], old2new[a]);
 		});
 
-		// sort increasingly by cluster and by object id 
+		// sort increasingly by cluster and by object id
 		std::sort(ids_n_clusters.begin(), ids_n_clusters.end(), [](const auto& p, const auto& q) {
 			return (std::get<1>(p) == std::get<1>(q)) ? (std::get<0>(p) < std::get<0>(q)) : (std::get<1>(p) < std::get<1>(q));
 		});
@@ -318,17 +323,17 @@ int GraphNumbered<Distance>::saveAssignments(
 		}
 	}
 	else {
-		
+
 		std::vector<std::tuple<std::string_view, int, int>> names_n_clusters_n_ids(globalNames.size());
 
 		int inside_id = 0;
 		int outsize_id = (int)assignments.size();
-		
+
 		for (int gi = 0; gi < globalNames.size(); ++gi) {
-		
+
 			int local_id = get_local_id(gi);
 			if (local_id == -1) {
-				// not in matrix 
+				// not in matrix
 				auto& out{ names_n_clusters_n_ids[outsize_id++] };
 				std::get<0>(out) = globalNames[gi];
 				std::get<1>(out) = singleton_id++;
@@ -343,7 +348,7 @@ int GraphNumbered<Distance>::saveAssignments(
 			}
 		}
 
-		// sort increasingly inside part by cluster and by object id 
+		// sort increasingly inside part by cluster and by object id
 		std::sort(names_n_clusters_n_ids.begin(), names_n_clusters_n_ids.begin() + inside_id, [](const auto& p, const auto& q) {
 			return (std::get<1>(p) == std::get<1>(q)) ? (std::get<2>(p) < std::get<2>(q)) : (std::get<1>(p) < std::get<1>(q));
 		});

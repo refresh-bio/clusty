@@ -13,7 +13,7 @@
 
 using namespace std;
 
-int main(int argc, char** argv) 
+int main(int argc, char** argv)
 {
 	try {
 
@@ -27,12 +27,17 @@ int main(int argc, char** argv)
 		if (!console.init(argc, argv, params)) {
 			return 0;
 		}
-	
+
 		std::unique_ptr<Graph> graph = console.loadGraph(params);
 
 		console.loadObjects(params, *graph, objects, names);
 		if (graph->getNumEdges() > 0) {
 			console.doClustering(params, *graph, objects, assignments);
+		}
+		else if (graph->getNumVertices() > 0) {
+			// No edges but have vertices: each vertex is its own singleton cluster
+			assignments.resize(graph->getNumVertices());
+			std::iota(assignments.begin(), assignments.end(), 0);
 		}
 		console.saveAssignments(params, *graph, names, assignments);
 
