@@ -12,6 +12,7 @@
 ![Linux](https://img.shields.io/static/v1?label=%E2%80%8B&message=Linux&color=00A98F&logo=linux&logoColor=white)
 ![macOS](https://img.shields.io/badge/%E2%80%8B-macOS-00A98F?logo=apple)
 
+[![Nat Methods 10.1038/s41592-025-02701-7](https://img.shields.io/badge/Nat%20Methods%202025-10.1038%2Fs41592--025--02701--7-blue)](https://doi.org/10.1038/s41592-025-02701-7)
 
 Clusty is a tool for large-scale clustering. By using sparse distance matrices it allows clustering data sets with millions of objects. 
 
