@@ -19,10 +19,10 @@
 #include <string>
 
 // *******************************************************************************************/
-union name_or_id_t { 
-	std::string_view name; 
-	int id; 
-	
+union name_or_id_t {
+	std::string_view name;
+	int id;
+
 	name_or_id_t() : id{0} {}
 };
 
@@ -57,7 +57,7 @@ public:
 			}
 		}
 	}
-	
+
 
 	int saveAssignments(
 		std::ofstream& ofs,
@@ -79,8 +79,8 @@ protected:
 			return it->second.first;
 		}
 	}
-	
-	IEdgesCollection* createEdgesCollection(size_t preallocSize) override { 
+
+	IEdgesCollection* createEdgesCollection(size_t preallocSize) override {
 		return new NamedEdgesCollection(preallocSize);
 	};
 
@@ -111,7 +111,7 @@ void GraphNamed<Distance>::initLoad() {
 
 	// invoke superclass method
 	GraphSparse<Distance>::initLoad();
-	
+
 	// assume space for 8M objects
 	ids2names.reserve(8LL << 20);
 
@@ -132,7 +132,7 @@ bool GraphNamed<Distance>::parseBlock(
 
 	int n_columns = (int)this->filters.size();
 	n_rows = 0;
-	
+
 	char* line = block_begin;
 
 	while (line != block_end) {
@@ -183,9 +183,10 @@ bool GraphNamed<Distance>::parseBlock(
 
 			p = q + 1;
 		}
-		
-		// do not consider diagonal elements (they are assumed to have 0 distance)
-		if (carryOn && (edge.first[0].name != edge.first[1].name)) {
+
+		// Push edge if it passed filters (self-loops will be filtered in updateMatrix,
+		// but we need to push them here to register the node names)
+		if (carryOn) {
 			namedEdges.data.push_back(edge);
 		}
 
@@ -227,7 +228,7 @@ void GraphNamed<Distance>::updateMappings(
 			if (its[k] == names2ids.end()) {
 
 				char* dst = namesBuffer.resize_for_additional(name.size() + 1);
-				std::copy_n(name.data(), name.size(), dst); // 0 is already there						
+				std::copy_n(name.data(), name.size(), dst); // 0 is already there
 				auto it_and_flag = names2ids.insert({ std::string_view(dst, name.size()), {-1, names2ids.size()} }); // -1 indicate singleton
 
 				its[k] = it_and_flag.first;
@@ -240,9 +241,9 @@ void GraphNamed<Distance>::updateMappings(
 				ids2names.push_back(it->first);
 				it->second.first = (int)ids2names.size() - 1;
 			}
-		
+
 			e.first[k].id = it->second.first;
-		}	
+		}
 	}
 }
 
@@ -263,6 +264,11 @@ void GraphNamed<Distance>::updateMatrix(
 	const NamedEdgesCollection& namedEdges{ dynamic_cast<const NamedEdgesCollection&>(edges) };
 
 	for (const NamedEdgesCollection::edge_t& e : namedEdges.data) {
+		// Skip self-loops (diagonal elements)
+		if (e.first[0].id == e.first[1].id) {
+			continue;
+		}
+
 		for (int k = 0; k < 2; ++k) {
 
 			int lid = e.first[k].id;
@@ -294,7 +300,6 @@ int GraphNamed<Distance>::saveAssignments(
 	this->sortClustersBySize(assignments, old2new);
 
 	int singleton_id = (int)old2new.size();
-	
 	if (globalNames.empty()) {
 
 		std::vector<std::tuple<std::string_view, int>> names_n_clusters(assignments.size());
@@ -308,7 +313,7 @@ int GraphNamed<Distance>::saveAssignments(
 			return (std::get<1>(p) == std::get<1>(q)) ? (std::get<0>(p) < std::get<0>(q)) : (std::get<1>(p) < std::get<1>(q));
 			});
 
-		
+
 		if (useRepresentatives) {
 			std::vector<std::tuple<std::string_view, std::string_view>> names_n_reps;
 			this->fillRepresentatives(names_n_clusters, names_n_reps);
@@ -321,7 +326,7 @@ int GraphNamed<Distance>::saveAssignments(
 
 	}
 	else {
-		
+
 		std::vector<std::tuple<std::string_view, int, int>> names_n_clusters_n_ids(globalNames.size());
 
 		int inside_id = 0;
@@ -351,7 +356,7 @@ int GraphNamed<Distance>::saveAssignments(
 			}
 		}
 
-		// sort increasingly inside part by cluster and by object id 
+		// sort increasingly inside part by cluster and by object id
 		std::sort(names_n_clusters_n_ids.begin(), names_n_clusters_n_ids.begin() + inside_id, [](const auto& p, const auto& q) {
 			return (std::get<1>(p) == std::get<1>(q)) ? (std::get<2>(p) < std::get<2>(q)) : (std::get<1>(p) < std::get<1>(q));
 			});
@@ -387,7 +392,7 @@ void GraphNamed<Distance>::print(std::ostream& out) const {
 	std::sort(names.begin(), names.end());
 
 	for (auto name : names) {
-		
+
 		int i = names2ids.at(name).first;
 		const std::vector<Distance>& row = this->matrix.distances[i];
 

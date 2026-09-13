@@ -37,13 +37,13 @@ public:
 	using edge_t = std::pair<edge_label_t[2], double>;
 
 	EdgesCollection(size_t preallocSize) {
-		data.reserve(preallocSize); 
+		data.reserve(preallocSize);
 	}
 
 	void clear() override { data.clear(); }
 
 	std::vector<edge_t> data;
-	
+
 	int maxEdge{ 0 };
 };
 
@@ -52,7 +52,7 @@ public:
 class Graph {
 
 protected:
-	int numThreads; 
+	int numThreads;
 
 	int sequenceColumnIds[2]{ 0, 1 };
 
@@ -65,17 +65,17 @@ public:
 	static bool isNewline(char c) { return c == '\r' || c == '\n'; }
 
 	Graph(int numThreads) : numThreads(std::max(4, numThreads)) {}; // at least three - loader,parser,updater
-		 
+
 	virtual ~Graph() {}
 
 	virtual IMatrix& getMatrix() = 0;
-	
+
 	virtual size_t getNumVertices() const = 0;
 
 	virtual size_t getNumInputVertices() const = 0;
 
 	virtual size_t getNumEdges() const = 0;
-		
+
 	virtual size_t load(
 		std::ifstream& ifs,
 		const std::pair<std::string, std::string>& idColumns,
@@ -117,8 +117,8 @@ protected:
 	void fillRepresentatives(
 		const std::vector<std::tuple<object_t, int, Ts...>>& objects_and_clusters,
 		std::vector<std::tuple<object_t, object_t>>& objects_and_representatives) const;
-	
-	
+
+
 };
 
 
@@ -128,6 +128,7 @@ void Graph::fillRepresentatives(
 	const std::vector<std::tuple<object_t, int, Ts...>> & objects_and_clusters,
 	std::vector<std::tuple<object_t, object_t>>& objects_and_representatives) const {
 
+
 	auto representative = std::get<0>(objects_and_clusters.front());
 	int cluster = std::get<1>(objects_and_clusters.front());
 
@@ -136,13 +137,13 @@ void Graph::fillRepresentatives(
 	for (int i = 0; i < (int)objects_and_clusters.size(); ++i) {
 		const auto& in = objects_and_clusters[i];
 		auto& out = objects_and_representatives[i];
-	
+
 		// update representative
 		if (std::get<1>(in) != cluster) {
 			cluster = std::get<1>(in);
 			representative = std::get<0>(in);
 		}
-		
+
 		std::get<0>(out) = std::get<0>(in);
 		std::get<1>(out) = representative;
 	}
